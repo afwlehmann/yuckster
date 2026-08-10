@@ -228,7 +228,6 @@ const drawKeybindings = (app: App): void => {
   const ctx = view.ctx;
   clear(view, PALETTE.void);
   drawParallax(view, parallax);
-  drawBiplane(ctx, app.biplane);
   ctx.fillStyle = 'rgba(8,12,10,0.55)';
   ctx.fillRect(0, 0, VIEW_W, VIEW_H);
   drawTextCenter(ctx, 'KEYBINDINGS', VIEW_W / 2, 70, PALETTE.hudAccent, 4);
@@ -422,6 +421,7 @@ const handleMenuIntent = (app: App, intent: Intent): void => {
         startGame(app);
       } else if (MENU_ITEMS[app.menuIndex] === 'KEYBINDINGS') {
         app.screen = 'keybindings';
+        app.biplane = createBiplane();
         app.audio.play('menuSelect');
       } else {
         app.audio.play('rotate');
@@ -435,6 +435,7 @@ const handleMenuIntent = (app: App, intent: Intent): void => {
 const handleKeybindingsIntent = (app: App, intent: Intent): void => {
   if (intent.kind === 'confirm' || intent.kind === 'pause') {
     app.screen = 'menu';
+    app.biplane = createBiplane();
     app.audio.play('menuMove');
   }
 };

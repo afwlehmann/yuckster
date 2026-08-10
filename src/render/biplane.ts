@@ -96,12 +96,12 @@ export const createBiplane = (): Biplane => ({
   active: false,
   x: 0,
   y: 0,
-  cooldown: 3 + Math.random() * 5,
+  cooldown: 0,
   t: 0,
 });
 
 const SPEED = 80;
-const ALTITUDE = 295; // just above the skyscrapers
+const ALTITUDE = 330;
 
 export const updateBiplane = (plane: Biplane, dt: number): Biplane => {
   const t = plane.t + dt;
