@@ -21,6 +21,10 @@ export interface SpriteStore {
   readonly yuckCrossH: HTMLCanvasElement;
   readonly yuckCrossV: HTMLCanvasElement;
   readonly yuckCrossBoth: HTMLCanvasElement;
+  readonly yuckEndN: HTMLCanvasElement;
+  readonly yuckEndS: HTMLCanvasElement;
+  readonly yuckEndE: HTMLCanvasElement;
+  readonly yuckEndW: HTMLCanvasElement;
 }
 
 const key = (parts: readonly unknown[]): string => parts.join(':');
@@ -588,6 +592,63 @@ const yuckSprite = (piece: Piece): HTMLCanvasElement => {
 
 // --- Start nozzle and end drain ------------------------------------------------
 
+const drawYuckEnd = (dir: Direction): HTMLCanvasElement => {
+  const { canvas, ctx } = makeSprite(SPRITE_SIZE, SPRITE_SIZE);
+  ctx.fillStyle = PALETTE.yuckDark;
+  ctx.fillRect(PIPE_HALF - 14, PIPE_HALF - 14, 28, 28);
+  ctx.fillStyle = PALETTE.yuck;
+  ctx.fillRect(PIPE_HALF - 13, PIPE_HALF - 13, 26, 26);
+  ctx.fillStyle = PALETTE.yuckLight;
+  ctx.fillRect(PIPE_HALF - 12, PIPE_HALF - 12, 24, 24);
+  ctx.fillStyle = PALETTE.yuckGlow;
+  ctx.fillRect(PIPE_HALF - 1, PIPE_HALF - 1, 2, 2);
+  switch (dir) {
+    case 'N':
+      ctx.fillRect(PIPE_HALF - CHANNEL_HALF, 0, CHANNEL_HALF * 2, PIPE_HALF);
+      break;
+    case 'S':
+      ctx.fillRect(PIPE_HALF - CHANNEL_HALF, PIPE_HALF, CHANNEL_HALF * 2, PIPE_HALF);
+      break;
+    case 'E':
+      ctx.fillRect(PIPE_HALF, PIPE_HALF - CHANNEL_HALF, PIPE_HALF, CHANNEL_HALF * 2);
+      break;
+    case 'W':
+      ctx.fillRect(0, PIPE_HALF - CHANNEL_HALF, PIPE_HALF, CHANNEL_HALF * 2);
+      break;
+  }
+  return canvas;
+};
+
+const drawEndFilled = (dir: Direction): HTMLCanvasElement => {
+  const { canvas, ctx } = makeSprite(SPRITE_SIZE, SPRITE_SIZE);
+  drawEndHousing(ctx, dir);
+  // Green pool behind the grate — visible through the bars, not past the housing
+  ctx.fillStyle = PALETTE.yuck;
+  ctx.fillRect(PIPE_HALF - 10, PIPE_HALF - 10, 20, 20);
+  ctx.fillStyle = PALETTE.yuckLight;
+  ctx.fillRect(PIPE_HALF - 8, PIPE_HALF - 8, 16, 16);
+  ctx.fillStyle = PALETTE.yuckGlow;
+  ctx.fillRect(PIPE_HALF - 2, PIPE_HALF - 2, 4, 4);
+  // Channel stub from the edge toward the pool
+  ctx.fillStyle = PALETTE.yuck;
+  switch (dir) {
+    case 'N':
+      ctx.fillRect(PIPE_HALF - CHANNEL_HALF, 0, CHANNEL_HALF * 2, PIPE_HALF - 10);
+      break;
+    case 'S':
+      ctx.fillRect(PIPE_HALF - CHANNEL_HALF, PIPE_HALF + 10, CHANNEL_HALF * 2, PIPE_HALF - 10);
+      break;
+    case 'E':
+      ctx.fillRect(PIPE_HALF + 10, PIPE_HALF - CHANNEL_HALF, PIPE_HALF - 10, CHANNEL_HALF * 2);
+      break;
+    case 'W':
+      ctx.fillRect(0, PIPE_HALF - CHANNEL_HALF, PIPE_HALF - 10, CHANNEL_HALF * 2);
+      break;
+  }
+  drawEndGrate(ctx);
+  return canvas;
+};
+
 const drawOpening = (ctx: CanvasRenderingContext2D, dir: Direction, color: string): void => {
   ctx.fillStyle = color;
   switch (dir) {
@@ -661,26 +722,26 @@ const drawStart = (dir: Direction): HTMLCanvasElement => {
   return canvas;
 };
 
-const drawEnd = (dir: Direction): HTMLCanvasElement => {
-  const { canvas, ctx } = makeSprite(SPRITE_SIZE, SPRITE_SIZE);
-  // Drain housing
+const drawEndHousing = (ctx: CanvasRenderingContext2D, dir: Direction): void => {
   ctx.fillStyle = PALETTE.drainDark;
   ctx.fillRect(PIPE_HALF - 20, PIPE_HALF - 20, 40, 40);
   ctx.fillStyle = PALETTE.pipeRim;
   ctx.fillRect(PIPE_HALF - 18, PIPE_HALF - 18, 36, 36);
-  ctx.fillStyle = PALETTE.drain;
-  ctx.fillRect(PIPE_HALF - 16, PIPE_HALF - 16, 32, 32);
-  ctx.fillStyle = PALETTE.nozzleLight;
-  ctx.fillRect(PIPE_HALF - 16, PIPE_HALF - 16, 32, 1);
-  // Grate bars (vertical)
+  drawOpening(ctx, dir, PALETTE.drain);
+};
+
+const drawEndGrate = (ctx: CanvasRenderingContext2D): void => {
   ctx.fillStyle = PALETTE.drainDark;
   for (let i = -12; i <= 12; i += 4) {
     ctx.fillRect(PIPE_HALF + i - 1, PIPE_HALF - 12, 2, 24);
   }
-  // Grate crossbars (horizontal)
   ctx.fillRect(PIPE_HALF - 12, PIPE_HALF - 1, 24, 2);
-  // Opening
-  drawOpening(ctx, dir, PALETTE.drainDark);
+};
+
+const drawEnd = (dir: Direction): HTMLCanvasElement => {
+  const { canvas, ctx } = makeSprite(SPRITE_SIZE, SPRITE_SIZE);
+  drawEndHousing(ctx, dir);
+  drawEndGrate(ctx);
   return canvas;
 };
 
@@ -708,6 +769,10 @@ export const buildSprites = (): SpriteStore => {
     yuckCrossH: drawYuckCrossH(),
     yuckCrossV: drawYuckCrossV(),
     yuckCrossBoth: drawYuckCross(),
+    yuckEndN: drawYuckEnd('N'),
+    yuckEndS: drawYuckEnd('S'),
+    yuckEndE: drawYuckEnd('E'),
+    yuckEndW: drawYuckEnd('W'),
   };
 };
 
@@ -728,4 +793,9 @@ export const startSprite = (store: SpriteStore, dir: Direction): HTMLCanvasEleme
 export const endSprite = (store: SpriteStore, dir: Direction): HTMLCanvasElement => {
   void store;
   return drawEnd(dir);
+};
+
+export const yuckEndSprite = (store: SpriteStore, dir: Direction): HTMLCanvasElement => {
+  void store;
+  return drawEndFilled(dir);
 };

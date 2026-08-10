@@ -12,6 +12,7 @@ import {
   pipeSpriteFor,
   startSprite,
   yuckSpriteFor,
+  yuckEndSprite,
   type SpriteStore,
 } from './sprites.js';
 import { PALETTE } from './palette.js';
@@ -59,6 +60,9 @@ const drawCell = (
     return;
   }
   if (cell.kind === 'end' && cell.sourceDir !== null) {
+    if (cell.fill > 0) {
+      blit(view, yuckEndSprite(store, cell.sourceDir), px, py);
+    }
     blit(view, endSprite(store, cell.sourceDir), px, py);
     return;
   }
