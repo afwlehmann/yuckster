@@ -228,8 +228,8 @@ const drawMenu = (app: App): void => {
 
 const KEYBINDING_LINES = [
   'MOVE          \u2190 \u2191 \u2193 \u2192  HJKL',
-  'ROTATE CW     D',
-  'ROTATE CCW    A',
+  'ROTATE CW     E',
+  'ROTATE CCW    W',
   'PLACE         SPACE',
   'PAUSE         P / ESC',
 ] as const;

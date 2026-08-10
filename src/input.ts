@@ -1,6 +1,6 @@
 // Keyboard input. Translates key presses into a small set of intents so the
 // screen layer can dispatch per current screen. Arrow keys and hjkl move the
-// cursor; a/d rotate; space places; p/esc pause/resume; enter confirms in menus.
+// cursor; q/e rotate; space places; p/esc pause/resume; enter confirms in menus.
 
 export type Intent =
   | { readonly kind: 'move'; readonly dx: number; readonly dy: number }
@@ -66,9 +66,9 @@ const translate = (key: string): Intent | null => {
     return { kind: 'move', dx: move.dx, dy: move.dy };
   }
   switch (key) {
-    case 'a':
+    case 'w':
       return { kind: 'rotate', dir: 'ccw' };
-    case 'd':
+    case 'e':
       return { kind: 'rotate', dir: 'cw' };
     case ' ':
     case 'Space':
