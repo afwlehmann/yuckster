@@ -166,9 +166,14 @@ export const tick = (state: GameState, dt: number): GameState => {
   if (outcome === 'flowing') {
     // Apply the remaining fractional fill to the new head cell so the slime
     // creeps visibly across the pipe each frame instead of jumping. Skip cells
-    // that are already full (e.g. the start nozzle).
-    const headFill = flow.board.cells[flow.head.y * flow.board.size + flow.head.x]?.fill ?? 0;
-    if (headFill < 1) {
+    // that are already full (e.g. the start nozzle). For crosses visited a
+    // second time on the perpendicular axis, the overall `fill` is already 1
+    // from the first pass but the active axis is still 0 — check that axis.
+    const headCell = flow.board.cells[flow.head.y * flow.board.size + flow.head.x];
+    const isCross = headCell?.piece !== null && headCell.piece.kind === 'cross';
+    const isH = flow.entryDir === 'E' || flow.entryDir === 'W';
+    const axisFill = isCross ? (isH ? headCell.fillH : headCell.fillV) : (headCell?.fill ?? 0);
+    if (axisFill < 1) {
       flow = setHeadFill(flow, Math.min(1, acc));
     }
   }

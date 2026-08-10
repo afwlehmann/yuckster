@@ -508,6 +508,13 @@ export const handleIntent = (app: App, intent: Intent): void => {
     app.audioUnlocked = true;
     app.music.unlock();
     app.music.playMenu();
+    void app.gameOverSound
+      .play()
+      .then(() => {
+        app.gameOverSound.pause();
+        app.gameOverSound.currentTime = 0;
+      })
+      .catch(() => {});
   }
   if (intent.kind === 'musicToggle') {
     app.music.toggle();

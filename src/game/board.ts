@@ -16,6 +16,8 @@ const emptyCell: Cell = {
   fill: 0,
   entryDir: null,
   sourceDir: null,
+  fillH: 0,
+  fillV: 0,
 };
 
 const cellAt = (board: Board, x: number, y: number): Cell => board.cells[y * board.size + x];

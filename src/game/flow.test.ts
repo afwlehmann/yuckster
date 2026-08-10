@@ -22,6 +22,8 @@ const horizontalCorridor = (): Board => {
     fill: 0,
     entryDir: null,
     sourceDir: null,
+    fillH: 0,
+    fillV: 0,
   }));
   let corridor: Board = { ...board, cells, start: { x: 0, y: 0 }, end: { x: 7, y: 0 } };
   corridor = updateCell(

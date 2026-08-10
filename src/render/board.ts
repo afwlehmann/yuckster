@@ -2,7 +2,7 @@
 // nozzle and end drain, and the placement cursor with a ghost preview of the
 // held piece. Pure draw function — no game state mutation.
 
-import type { Board, Piece, Position } from '../game/types.js';
+import type { Board, Piece, Position, Direction } from '../game/types.js';
 import { getCell } from '../game/board.js';
 import { GRID_SIZE, GRID_PX, GRID_X, GRID_Y, TILE, type CanvasView, blit } from './canvas.js';
 import {
@@ -65,37 +65,129 @@ const drawCell = (
   if (cell.piece !== null) {
     blit(view, pipeSpriteFor(store, cell.piece), px, py);
     if (cell.fill > 0) {
-      // Clip the yuck sprite so it appears to flow from entry to exit edge.
-      // fill=0 → nothing visible, fill=1 → full sprite.
       const fill = Math.min(1, cell.fill);
       const dir = cell.entryDir;
-      view.ctx.save();
-      view.ctx.beginPath();
-      if (dir !== null && cell.piece.kind !== 'cross') {
-        // For straight/elbow: clip from entry edge growing toward exit.
-        switch (dir) {
-          case 'N':
-            // Enters from top, flows down — reveal from top.
-            view.ctx.rect(px, py, TILE, TILE * fill);
-            break;
-          case 'S':
-            view.ctx.rect(px, py + TILE * (1 - fill), TILE, TILE * fill);
-            break;
-          case 'E':
-            view.ctx.rect(px + TILE * (1 - fill), py, TILE * fill, TILE);
-            break;
-          case 'W':
-            view.ctx.rect(px, py, TILE * fill, TILE);
-            break;
+      const piece = cell.piece;
+      if (piece.kind === 'cross') {
+        const hDone = cell.fillH >= 1;
+        const vDone = cell.fillV >= 1;
+        if (hDone && vDone) {
+          blit(view, store.yuckCrossBoth, px, py);
+        } else if (cell.fillH > 0 && cell.fillV > 0) {
+          if (hDone) {
+            blit(view, store.yuckCrossH, px, py);
+          } else {
+            blit(view, store.yuckCrossV, px, py);
+          }
+          const activeH = !hDone;
+          const f = activeH ? cell.fillH : cell.fillV;
+          view.ctx.save();
+          view.ctx.beginPath();
+          if (activeH) {
+            if (dir === 'W') {
+              view.ctx.rect(px, py + TILE / 2 - 8, TILE * f, 16);
+            } else {
+              view.ctx.rect(px + TILE * (1 - f), py + TILE / 2 - 8, TILE * f, 16);
+            }
+          } else {
+            if (dir === 'N') {
+              view.ctx.rect(px + TILE / 2 - 8, py, 16, TILE * f);
+            } else {
+              view.ctx.rect(px + TILE / 2 - 8, py + TILE * (1 - f), 16, TILE * f);
+            }
+          }
+          view.ctx.clip();
+          blit(view, activeH ? store.yuckCrossH : store.yuckCrossV, px, py);
+          view.ctx.restore();
+        } else if (cell.fillH > 0) {
+          if (hDone) {
+            blit(view, store.yuckCrossH, px, py);
+          } else {
+            view.ctx.save();
+            view.ctx.beginPath();
+            const hfill = cell.fillH;
+            if (dir === 'W') {
+              view.ctx.rect(px, py + TILE / 2 - 8, TILE * hfill, 16);
+            } else {
+              view.ctx.rect(px + TILE * (1 - hfill), py + TILE / 2 - 8, TILE * hfill, 16);
+            }
+            view.ctx.clip();
+            blit(view, store.yuckCrossH, px, py);
+            view.ctx.restore();
+          }
+        } else if (cell.fillV > 0) {
+          if (vDone) {
+            blit(view, store.yuckCrossV, px, py);
+          } else {
+            view.ctx.save();
+            view.ctx.beginPath();
+            const vfill = cell.fillV;
+            if (dir === 'N') {
+              view.ctx.rect(px + TILE / 2 - 8, py, 16, TILE * vfill);
+            } else {
+              view.ctx.rect(px + TILE / 2 - 8, py + TILE * (1 - vfill), 16, TILE * vfill);
+            }
+            view.ctx.clip();
+            blit(view, store.yuckCrossV, px, py);
+            view.ctx.restore();
+          }
         }
-      } else {
-        // For cross or unknown: just reveal from center outward (square).
-        const half = (1 - fill) / 2;
-        view.ctx.rect(px + TILE * half, py + TILE * half, TILE * fill, TILE * fill);
+      } else if (fill >= 1) {
+        blit(view, yuckSpriteFor(store, piece), px, py);
+      } else if (dir !== null) {
+        view.ctx.save();
+        view.ctx.beginPath();
+        if (piece.kind === 'elbow') {
+          const HALF = TILE / 2;
+          const CH = 8;
+          const bigR = HALF + CH;
+          const pairs: readonly (readonly [
+            Direction,
+            Direction,
+            readonly [number, number],
+            number,
+            number,
+          ])[] = [
+            ['N', 'E', [TILE, 0], Math.PI, Math.PI / 2],
+            ['E', 'S', [TILE, TILE], -Math.PI / 2, Math.PI],
+            ['S', 'W', [0, TILE], 0, -Math.PI / 2],
+            ['W', 'N', [0, 0], Math.PI / 2, 0],
+          ];
+          const info = pairs[piece.rotation % 4];
+          const [cx, cy] = info[2];
+          const angA = info[3];
+          const angB = info[4];
+          const entryAtA = dir === info[0];
+          const sweep = (Math.PI / 2) * fill;
+          const acx = px + cx;
+          const acy = py + cy;
+          view.ctx.moveTo(acx, acy);
+          if (entryAtA) {
+            view.ctx.arc(acx, acy, bigR, angA - sweep, angA, false);
+          } else {
+            view.ctx.arc(acx, acy, bigR, angB, angB + sweep, false);
+          }
+          view.ctx.closePath();
+        } else {
+          switch (dir) {
+            case 'N':
+              view.ctx.rect(px, py, TILE, TILE * fill);
+              break;
+            case 'S':
+              view.ctx.rect(px, py + TILE * (1 - fill), TILE, TILE * fill);
+              break;
+            case 'E':
+              view.ctx.rect(px + TILE * (1 - fill), py, TILE * fill, TILE);
+              break;
+            case 'W':
+              view.ctx.rect(px, py, TILE * fill, TILE);
+              break;
+          }
+        }
+        view.ctx.clip();
+        blit(view, yuckSpriteFor(store, piece), px, py);
+        view.ctx.restore();
       }
-      view.ctx.clip();
-      blit(view, yuckSpriteFor(store, cell.piece), px, py);
-      view.ctx.restore();
     }
   }
 };

@@ -103,7 +103,7 @@ const advance = (state: FlowState): StepResult => {
     const endBoard = {
       ...state.board,
       cells: state.board.cells.map((c, i) =>
-        i === endIndex ? { ...c, fill: 1, entryDir: nextEntry } : c,
+        i === endIndex ? { ...c, fill: 1, entryDir: nextEntry, fillH: 1, fillV: 1 } : c,
       ),
     };
     const filled = [...state.filledCells, nextPos];
@@ -154,11 +154,21 @@ export const headFillProgress = (state: FlowState): number => getCell(state.boar
  * updated FlowState (with the filled cell baked into the board) and outcome.
  */
 export const completeHeadCell = (state: FlowState): StepResult => {
+  const idx = state.head.y * state.board.size + state.head.x;
+  const isH = state.entryDir === 'E' || state.entryDir === 'W';
   const filledBoard = {
     ...state.board,
-    cells: state.board.cells.map((c, i) =>
-      i === state.head.y * state.board.size + state.head.x ? { ...c, fill: 1 } : c,
-    ),
+    cells: state.board.cells.map((c, i) => {
+      if (i !== idx) return c;
+      const isCross = c.piece !== null && c.piece.kind === 'cross';
+      return {
+        ...c,
+        fill: 1,
+        entryDir: state.entryDir,
+        fillH: isCross ? (isH ? 1 : c.fillH) : 1,
+        fillV: isCross ? (isH ? c.fillV : 1) : 1,
+      };
+    }),
   } as Board;
   const updated: FlowState = { ...state, board: filledBoard };
   return advance(updated);
@@ -166,11 +176,21 @@ export const completeHeadCell = (state: FlowState): StepResult => {
 
 /** Set the current head cell's fill to a fractional value (0..1). Pure. */
 export const setHeadFill = (state: FlowState, fill: number): FlowState => {
+  const idx = state.head.y * state.board.size + state.head.x;
+  const isH = state.entryDir === 'E' || state.entryDir === 'W';
   const filledBoard = {
     ...state.board,
-    cells: state.board.cells.map((c, i) =>
-      i === state.head.y * state.board.size + state.head.x ? { ...c, fill } : c,
-    ),
+    cells: state.board.cells.map((c, i) => {
+      if (i !== idx) return c;
+      const isCross = c.piece !== null && c.piece.kind === 'cross';
+      return {
+        ...c,
+        fill,
+        entryDir: state.entryDir,
+        fillH: isCross ? (isH ? fill : c.fillH) : fill,
+        fillV: isCross ? (isH ? c.fillV : fill) : fill,
+      };
+    }),
   } as Board;
   return { ...state, board: filledBoard };
 };

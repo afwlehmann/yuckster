@@ -27,6 +27,8 @@ export interface Cell {
   readonly fill: number;
   readonly entryDir: Direction | null;
   readonly sourceDir: Direction | null;
+  readonly fillH: number;
+  readonly fillV: number;
 }
 
 export interface Position {

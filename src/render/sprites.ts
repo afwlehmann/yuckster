@@ -18,6 +18,9 @@ export interface SpriteStore {
   readonly yuck: ReadonlyMap<SpriteKey, HTMLCanvasElement>;
   readonly start: HTMLCanvasElement;
   readonly end: HTMLCanvasElement;
+  readonly yuckCrossH: HTMLCanvasElement;
+  readonly yuckCrossV: HTMLCanvasElement;
+  readonly yuckCrossBoth: HTMLCanvasElement;
 }
 
 const key = (parts: readonly unknown[]): string => parts.join(':');
@@ -552,6 +555,18 @@ const drawYuckElbow = (rotation: number): HTMLCanvasElement => {
   return canvas;
 };
 
+const drawYuckCrossH = (): HTMLCanvasElement => {
+  const { canvas, ctx } = makeSprite(SPRITE_SIZE, SPRITE_SIZE);
+  drawYuckBandH(ctx);
+  return canvas;
+};
+
+const drawYuckCrossV = (): HTMLCanvasElement => {
+  const { canvas, ctx } = makeSprite(SPRITE_SIZE, SPRITE_SIZE);
+  drawYuckBandV(ctx);
+  return canvas;
+};
+
 const drawYuckCross = (): HTMLCanvasElement => {
   const { canvas, ctx } = makeSprite(SPRITE_SIZE, SPRITE_SIZE);
   drawYuckBandH(ctx);
@@ -684,7 +699,16 @@ export const buildSprites = (): SpriteStore => {
   }
   const start = drawStart('E');
   const end = drawEnd('W');
-  return { gravel, pipes, yuck, start, end };
+  return {
+    gravel,
+    pipes,
+    yuck,
+    start,
+    end,
+    yuckCrossH: drawYuckCrossH(),
+    yuckCrossV: drawYuckCrossV(),
+    yuckCrossBoth: drawYuckCross(),
+  };
 };
 
 export const gravelSprite = (store: SpriteStore, index: number): HTMLCanvasElement =>
