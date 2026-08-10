@@ -5,7 +5,7 @@
 import { makeSprite, type CanvasView, VIEW_W, VIEW_H } from './canvas.js';
 import { PALETTE } from './palette.js';
 
-const SCALE = 1 / 8;
+const SCALE = 1 / 16;
 
 export const drawBlurredFrame = (view: CanvasView, source: HTMLCanvasElement): void => {
   const { ctx } = view;

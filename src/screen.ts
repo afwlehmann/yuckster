@@ -9,8 +9,10 @@ import { drawHud, type HudState } from './render/hud.js';
 import { PALETTE } from './render/palette.js';
 import { drawText, drawTextCenter, textWidth } from './render/font.js';
 import { type Audio } from './audio.js';
+import { type Music } from './music.js';
 import { createShakeState, type Shake } from './render/shake.js';
 import { createParallax, updateParallax, drawParallax, type Parallax } from './render/parallax.js';
+import { createBiplane, updateBiplane, drawBiplane, type Biplane } from './render/biplane.js';
 import { drawBlurredFrame } from './render/blur.js';
 import { type Intent } from './input.js';
 import { DIFFICULTIES, findDifficulty } from './game/difficulty.js';
@@ -54,6 +56,7 @@ export interface App {
   readonly view: CanvasView;
   readonly store: SpriteStore;
   readonly audio: Audio;
+  readonly music: Music;
   screen: Screen;
   state: GameState;
   lastTs: number;
@@ -67,19 +70,26 @@ export interface App {
   pauseIndex: number;
   frozenFrame: HTMLCanvasElement | null;
   fade: number; // 0..1 menu→game crossfade
+  biplane: Biplane;
+  titleImage: HTMLImageElement | null;
+  titleImageReady: boolean;
+  audioUnlocked: boolean;
 }
 
-export const createApp = (view: CanvasView, audio: Audio): App => {
+export const createApp = (view: CanvasView, audio: Audio, music: Music): App => {
   const store = createSpriteStore();
   const diffName = loadDifficulty();
   const difficultyIndex = Math.max(
     0,
     DIFFICULTIES.findIndex((d) => d.name === diffName),
   );
-  return {
+  const titleImage = new Image();
+  titleImage.src = '/title.png';
+  const app: App = {
     view,
     store,
     audio,
+    music,
     screen: 'menu',
     state: newGame(findDifficulty(diffName)),
     lastTs: 0,
@@ -93,7 +103,15 @@ export const createApp = (view: CanvasView, audio: Audio): App => {
     pauseIndex: 0,
     frozenFrame: null,
     fade: 0,
+    biplane: createBiplane(),
+    titleImage,
+    titleImageReady: false,
+    audioUnlocked: false,
   };
+  titleImage.addEventListener('load', () => {
+    app.titleImageReady = true;
+  });
+  return app;
 };
 
 const MENU_ITEMS = ['START MISSION', 'DIFFICULTY', 'KEYBINDINGS'] as const;
@@ -105,6 +123,7 @@ const startGame = (app: App): void => {
   app.lastCountdownWhole = Math.ceil(app.state.countdownRemaining);
   app.screen = 'game';
   app.audio.play('menuSelect');
+  app.music.playGame();
 };
 
 const cursorFor = (state: GameState, blink: number): Cursor => ({
@@ -127,34 +146,38 @@ const drawMenu = (app: App): void => {
   const { view, parallax } = app;
   clear(view, PALETTE.void);
   drawParallax(view, parallax);
+  drawBiplane(view.ctx, app.biplane);
   const { ctx } = view;
-  // Title with drip effect (scale 6)
-  const title = 'YUCKSTER';
-  drawTextCenter(ctx, title, VIEW_W / 2, 70, PALETTE.yuckDark, 6);
-  drawTextCenter(ctx, title, VIEW_W / 2, 66, PALETTE.yuck, 6);
-  drawTextCenter(ctx, title, VIEW_W / 2, 64, PALETTE.yuckLight, 6);
-  // Drips under title
-  ctx.fillStyle = PALETTE.yuck;
-  const titleSpacing = 6 * (5 + 1);
-  for (let i = 0; i < title.length; i += 1) {
-    if (i % 2 === 0) {
-      const x = VIEW_W / 2 - textWidth(title, 6) / 2 + i * titleSpacing + 6;
-      ctx.fillRect(x, 120, 3, 14);
-    }
+  // Title banner image (if loaded), scaled to fit; else fallback to text.
+  if (app.titleImageReady && app.titleImage !== null) {
+    const img = app.titleImage;
+    const maxW = 440;
+    const scale = Math.min(maxW / img.width, 1);
+    const dw = img.width * scale;
+    const dh = img.height * scale;
+    const dx = (VIEW_W - dw) / 2;
+    const dy = 16;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, dx, dy, dw, dh);
+  } else {
+    const title = 'YUCKSTER';
+    drawTextCenter(ctx, title, VIEW_W / 2, 70, PALETTE.yuckDark, 6);
+    drawTextCenter(ctx, title, VIEW_W / 2, 66, PALETTE.yuck, 6);
+    drawTextCenter(ctx, title, VIEW_W / 2, 64, PALETTE.yuckLight, 6);
   }
-  // Menu items (scale 2)
+  // Menu items (scale 1), clustered below the logo
+  const menuStart = 280;
+  const menuEnd = 348;
+  const slotH = (menuEnd - menuStart) / MENU_ITEMS.length;
   MENU_ITEMS.forEach((item, i) => {
-    const y = 180 + i * 40;
+    const y = Math.round(menuStart + i * slotH);
     const selected = i === app.menuIndex;
     const color = selected ? PALETTE.hudAccent : PALETTE.hudTextDim;
-    if (selected) {
-      ctx.fillStyle = PALETTE.hudAccent;
-      ctx.fillRect(VIEW_W / 2 - textWidth(item, 2) / 2 - 12, y, 3, 16);
-    }
-    drawTextCenter(ctx, item, VIEW_W / 2, y, color, 2);
+    drawTextCenter(ctx, item, VIEW_W / 2, y, color, 1);
     if (item === 'DIFFICULTY' && i === 1) {
       const name = DIFFICULTIES[app.difficultyIndex].name;
-      drawTextCenter(ctx, `< ${name} >`, VIEW_W / 2, y + 18, PALETTE.hudText, 1);
+      const diffColor = selected ? PALETTE.hudAccent : PALETTE.hudTextDim;
+      drawTextCenter(ctx, `< ${name} >`, VIEW_W / 2, y + 12, diffColor, 1);
     }
   });
   // Footer hint
@@ -166,17 +189,28 @@ const drawMenu = (app: App): void => {
     PALETTE.hudTextDim,
     2,
   );
+  // Blinking "press key for music" note until audio is unlocked
+  if (!app.audioUnlocked) {
+    const blinkOn = Math.floor(app.blink * 2) % 2 === 0;
+    if (blinkOn) {
+      drawTextCenter(
+        ctx,
+        'PRESS ANY KEY TO ENABLE MUSIC',
+        VIEW_W / 2,
+        VIEW_H - 44,
+        PALETTE.hudWarn,
+        1,
+      );
+    }
+  }
 };
 
 const KEYBINDING_LINES = [
-  'MOVE      ARROWS  HJKL',
-  'ROTATE CW D',
-  'ROTATE CCW A',
-  'PLACE     SPACE',
-  'PAUSE     P / ESC',
-  'RESUME    ESC',
-  'QUIT      ENTER (PAUSE)',
-  'CONFIRM   ENTER',
+  'MOVE          \u2190 \u2191 \u2193 \u2192  HJKL',
+  'ROTATE CW     D',
+  'ROTATE CCW    A',
+  'PLACE         SPACE',
+  'PAUSE         P / ESC',
 ] as const;
 
 const drawKeybindings = (app: App): void => {
@@ -184,11 +218,14 @@ const drawKeybindings = (app: App): void => {
   const ctx = view.ctx;
   clear(view, PALETTE.void);
   drawParallax(view, parallax);
+  drawBiplane(ctx, app.biplane);
   ctx.fillStyle = 'rgba(8,12,10,0.55)';
   ctx.fillRect(0, 0, VIEW_W, VIEW_H);
   drawTextCenter(ctx, 'KEYBINDINGS', VIEW_W / 2, 70, PALETTE.hudAccent, 4);
+  const maxLineW = Math.max(...KEYBINDING_LINES.map((l) => textWidth(l, 2)));
+  const blockX = (VIEW_W - maxLineW) / 2;
   KEYBINDING_LINES.forEach((line, i) => {
-    drawText(ctx, line, VIEW_W / 2 - 180, 140 + i * 28, PALETTE.hudText, 2);
+    drawText(ctx, line, blockX, 140 + i * 28, PALETTE.hudText, 2);
   });
   drawTextCenter(ctx, 'ESC/ENTER BACK', VIEW_W / 2, VIEW_H - 30, PALETTE.hudTextDim, 2);
 };
@@ -242,10 +279,6 @@ const drawPause = (app: App): void => {
     const y = VIEW_H / 2 + i * 32;
     const selected = i === app.pauseIndex;
     const color = selected ? PALETTE.hudAccent : PALETTE.hudTextDim;
-    if (selected) {
-      ctx.fillStyle = PALETTE.hudAccent;
-      ctx.fillRect(VIEW_W / 2 - textWidth(item, 2) / 2 - 12, y, 3, 16);
-    }
     drawTextCenter(ctx, item, VIEW_W / 2, y, color, 2);
   });
   drawTextCenter(ctx, 'ESC RESUME  /  ENTER QUIT', VIEW_W / 2, VIEW_H - 30, PALETTE.hudTextDim, 2);
@@ -292,6 +325,8 @@ const handleGameIntent = (app: App, intent: Intent): void => {
     } else if (intent.kind === 'pause') {
       app.screen = 'menu';
       app.audio.stopFlowLoop();
+      app.music.stop();
+      app.music.playMenu();
     }
     return;
   }
@@ -319,6 +354,7 @@ const handleGameIntent = (app: App, intent: Intent): void => {
       app.screen = 'pause';
       app.pauseIndex = 0;
       app.audio.suspend();
+      app.music.suspend();
       break;
     default:
       break;
@@ -327,6 +363,28 @@ const handleGameIntent = (app: App, intent: Intent): void => {
 
 const handleMenuIntent = (app: App, intent: Intent): void => {
   switch (intent.kind) {
+    case 'move':
+      if (intent.dy < 0) {
+        app.menuIndex = (app.menuIndex + MENU_ITEMS.length - 1) % MENU_ITEMS.length;
+        app.audio.play('menuMove');
+      } else if (intent.dy > 0) {
+        app.menuIndex = (app.menuIndex + 1) % MENU_ITEMS.length;
+        app.audio.play('menuMove');
+      } else if (intent.dx < 0) {
+        if (MENU_ITEMS[app.menuIndex] === 'DIFFICULTY') {
+          app.difficultyIndex =
+            (app.difficultyIndex + DIFFICULTIES.length - 1) % DIFFICULTIES.length;
+          saveDifficulty(DIFFICULTIES[app.difficultyIndex].name);
+          app.audio.play('rotate');
+        }
+      } else if (intent.dx > 0) {
+        if (MENU_ITEMS[app.menuIndex] === 'DIFFICULTY') {
+          app.difficultyIndex = (app.difficultyIndex + 1) % DIFFICULTIES.length;
+          saveDifficulty(DIFFICULTIES[app.difficultyIndex].name);
+          app.audio.play('rotate');
+        }
+      }
+      break;
     case 'up':
       app.menuIndex = (app.menuIndex + MENU_ITEMS.length - 1) % MENU_ITEMS.length;
       app.audio.play('menuMove');
@@ -385,6 +443,7 @@ const handlePauseIntent = (app: App, intent: Intent): void => {
       app.screen = 'game';
       app.frozenFrame = null;
       app.audio.resume();
+      app.music.resume();
       app.audio.play('menuSelect');
       break;
     case 'confirm':
@@ -393,6 +452,8 @@ const handlePauseIntent = (app: App, intent: Intent): void => {
       app.audio.stopFlowLoop();
       app.audio.resume();
       app.audio.play('menuSelect');
+      app.music.stop();
+      app.music.playMenu();
       break;
     default:
       break;
@@ -401,6 +462,11 @@ const handlePauseIntent = (app: App, intent: Intent): void => {
 
 export const handleIntent = (app: App, intent: Intent): void => {
   app.audio.unlock();
+  if (!app.audioUnlocked) {
+    app.audioUnlocked = true;
+    app.music.unlock();
+    app.music.playMenu();
+  }
   switch (app.screen) {
     case 'menu':
       handleMenuIntent(app, intent);
@@ -422,6 +488,7 @@ export const update = (app: App, dt: number): void => {
   app.shake = app.shake.update(dt);
   if (app.screen === 'menu' || app.screen === 'keybindings') {
     app.parallax = updateParallax(app.parallax, dt);
+    app.biplane = updateBiplane(app.biplane, dt);
   }
   if (app.screen === 'game') {
     app.state = tick(app.state, dt);
