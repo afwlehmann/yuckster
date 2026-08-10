@@ -1,15 +1,14 @@
 // Bootstraps the canvas and the game loop. The first iteration draws a placeholder
-// so the scaffold builds and runs; subsequent commits wire the real screens.
-const canvas = document.getElementById('game') as HTMLCanvasElement | null;
-const ctx = canvas?.getContext('2d') ?? null;
+// using the pixel font so the render core builds and runs; subsequent commits wire
+// the real screens (menu, game, pause, overlays).
 
-if (canvas !== null && ctx !== null) {
-  ctx.fillStyle = '#101820';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#7fff5a';
-  ctx.font = '10px monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText('YUCKSTER', canvas.width / 2, canvas.height / 2);
-}
+import { clear, createCanvasView, VIEW_W } from './render/canvas.js';
+import { drawText, drawTextCenter } from './render/font.js';
 
-console.warn('yuckster: scaffold boot');
+const view = createCanvasView();
+clear(view, '#101820');
+const { ctx } = view;
+ctx.fillStyle = '#7fff5a';
+drawTextCenter(ctx, 'YUCKSTER', VIEW_W / 2, 40, '#7fff5a', 2);
+drawText(ctx, 'PIPE DREAM-STYLE GOO GAME', 60, 70, '#7ab8a0', 1);
+drawText(ctx, 'loading...', 100, 120, '#5a7a6a', 1);
