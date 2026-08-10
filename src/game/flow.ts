@@ -150,5 +150,16 @@ export const completeHeadCell = (state: FlowState): StepResult => {
   return advance(updated);
 };
 
+/** Set the current head cell's fill to a fractional value (0..1). Pure. */
+export const setHeadFill = (state: FlowState, fill: number): FlowState => {
+  const filledBoard = {
+    ...state.board,
+    cells: state.board.cells.map((c, i) =>
+      i === state.head.y * state.board.size + state.head.x ? { ...c, fill } : c,
+    ),
+  } as Board;
+  return { ...state, board: filledBoard };
+};
+
 /** Score earned so far (used by the HUD). */
 export const flowScore = (state: FlowState): number => state.score;

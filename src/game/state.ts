@@ -5,7 +5,13 @@
 
 import type { Board, Difficulty, Piece, Phase, Position } from './types.js';
 import { createLevel, getCell, place, clampToBoard, GRID_SIZE } from './board.js';
-import { completeHeadCell, startFlow, type FlowState, type StepResult } from './flow.js';
+import {
+  completeHeadCell,
+  setHeadFill,
+  startFlow,
+  type FlowState,
+  type StepResult,
+} from './flow.js';
 import { createRng, type RngState } from './rng.js';
 import { drawPiece, rotateCw, rotateCcw } from './pieces.js';
 
@@ -137,36 +143,41 @@ export const tick = (state: GameState, dt: number): GameState => {
     const flow = startFlow(state.board);
     return { ...state, phase: 'flowing', countdownRemaining: 0, flow, flowCellAccumulator: 0 };
   }
-  // flowing
+  // flowing — the head cell fills continuously; only when it reaches 1 do we
+  // advance to the next cell. The accumulator tracks fractional cell progress.
   if (state.flow === null) {
     return state;
   }
   const speed = flowSpeed(state.difficulty, state.level);
-  const acc = state.flowCellAccumulator + speed * dt;
-  // Each whole unit of acc completes one cell.
-  const cellsToAdvance = Math.floor(acc);
-  if (cellsToAdvance <= 0) {
-    return { ...state, flowCellAccumulator: acc };
-  }
+  let acc = state.flowCellAccumulator + speed * dt;
   let flow: FlowState = state.flow;
   let outcome: StepResult['outcome'] = 'flowing';
-  let extraScore = 0;
-  for (let i = 0; i < cellsToAdvance; i += 1) {
+
+  // Complete whole cells while the accumulator has >= 1 unit of progress.
+  while (acc >= 1 && outcome === 'flowing') {
     const result = completeHeadCell(flow);
     flow = result.state;
     outcome = result.outcome;
-    if (outcome !== 'flowing') {
-      break;
+    acc -= 1;
+  }
+
+  if (outcome === 'flowing') {
+    // Apply the remaining fractional fill to the new head cell so the slime
+    // creeps visibly across the pipe each frame instead of jumping. Skip cells
+    // that are already full (e.g. the start nozzle).
+    const headFill = flow.board.cells[flow.head.y * flow.board.size + flow.head.x]?.fill ?? 0;
+    if (headFill < 1) {
+      flow = setHeadFill(flow, Math.min(1, acc));
     }
   }
-  extraScore = flow.score - (state.flow?.score ?? 0);
-  const carriedAcc = acc - cellsToAdvance;
+
+  const extraScore = flow.score - (state.flow?.score ?? 0);
   if (outcome === 'won') {
     const levelBonus = state.level * 100;
     return {
       ...state,
       flow,
-      flowCellAccumulator: carriedAcc,
+      flowCellAccumulator: acc,
       score: state.score + extraScore + levelBonus,
       phase: 'won',
       board: flow.board,
@@ -176,7 +187,7 @@ export const tick = (state: GameState, dt: number): GameState => {
     return {
       ...state,
       flow,
-      flowCellAccumulator: carriedAcc,
+      flowCellAccumulator: acc,
       score: state.score + extraScore,
       phase: 'lost',
       board: flow.board,
@@ -185,7 +196,7 @@ export const tick = (state: GameState, dt: number): GameState => {
   return {
     ...state,
     flow,
-    flowCellAccumulator: carriedAcc,
+    flowCellAccumulator: acc,
     score: state.score + extraScore,
     board: flow.board,
   };

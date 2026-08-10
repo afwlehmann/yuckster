@@ -144,7 +144,7 @@ const drawMenu = (app: App): void => {
   }
   // Menu items (scale 2)
   MENU_ITEMS.forEach((item, i) => {
-    const y = 180 + i * 32;
+    const y = 180 + i * 40;
     const selected = i === app.menuIndex;
     const color = selected ? PALETTE.hudAccent : PALETTE.hudTextDim;
     if (selected) {
@@ -154,7 +154,7 @@ const drawMenu = (app: App): void => {
     drawTextCenter(ctx, item, VIEW_W / 2, y, color, 2);
     if (item === 'DIFFICULTY' && i === 1) {
       const name = DIFFICULTIES[app.difficultyIndex].name;
-      drawTextCenter(ctx, `< ${name} >`, VIEW_W / 2, y + 22, PALETTE.hudText, 2);
+      drawTextCenter(ctx, `< ${name} >`, VIEW_W / 2, y + 18, PALETTE.hudText, 1);
     }
   });
   // Footer hint
