@@ -14,6 +14,13 @@ import { createShakeState, type Shake } from './render/shake.js';
 import { createParallax, updateParallax, drawParallax, type Parallax } from './render/parallax.js';
 import { createBiplane, updateBiplane, drawBiplane, type Biplane } from './render/biplane.js';
 import { drawBlurredFrame } from './render/blur.js';
+import {
+  createGameOverState,
+  drawGameOver,
+  updateGameOver,
+  allSettled,
+  type GameOverState,
+} from './render/gameover.js';
 import { type Intent } from './input.js';
 import { DIFFICULTIES, findDifficulty } from './game/difficulty.js';
 import type { DifficultyName } from './game/types.js';
@@ -28,7 +35,7 @@ import {
   tick,
 } from './game/state.js';
 
-export type Screen = 'menu' | 'keybindings' | 'game' | 'pause';
+export type Screen = 'menu' | 'keybindings' | 'game' | 'pause' | 'gameover';
 
 const STORAGE_KEY = 'yuckster.difficulty';
 
@@ -74,6 +81,8 @@ export interface App {
   titleImage: HTMLImageElement | null;
   titleImageReady: boolean;
   audioUnlocked: boolean;
+  gameOver: GameOverState;
+  gameOverSound: HTMLAudioElement;
 }
 
 export const createApp = (view: CanvasView, audio: Audio, music: Music): App => {
@@ -107,6 +116,8 @@ export const createApp = (view: CanvasView, audio: Audio, music: Music): App => 
     titleImage,
     titleImageReady: false,
     audioUnlocked: false,
+    gameOver: createGameOverState(),
+    gameOverSound: new Audio(`${import.meta.env.BASE_URL}game-over.mp3`),
   };
   titleImage.addEventListener('load', () => {
     app.titleImageReady = true;
@@ -257,16 +268,6 @@ const drawGameScreen = (app: App): void => {
       PALETTE.hudText,
       2,
     );
-  } else if (state.phase === 'lost') {
-    drawTextCenter(view.ctx, 'SPILL!', VIEW_W / 2, VIEW_H / 2 - 20, PALETTE.hudDanger, 4);
-    drawTextCenter(
-      view.ctx,
-      'ENTER RETRY  /  ESC MENU',
-      VIEW_W / 2,
-      VIEW_H / 2 + 20,
-      PALETTE.hudText,
-      2,
-    );
   }
   view.ctx.restore();
 };
@@ -310,9 +311,20 @@ const updateAudioForPhase = (app: App): void => {
     audio.play('flowStart');
     audio.startFlowLoop();
   }
-  if (lastPhase === 'flowing' && (state.phase === 'won' || state.phase === 'lost')) {
+  if (lastPhase === 'flowing' && state.phase === 'won') {
     audio.stopFlowLoop();
-    audio.play(state.phase === 'won' ? 'win' : 'lose');
+    audio.play('win');
+  }
+  if (lastPhase === 'flowing' && state.phase === 'lost') {
+    audio.stopFlowLoop();
+    audio.play('lose');
+    app.music.stop();
+    app.screen = 'gameover';
+    app.gameOver = createGameOverState();
+    const snd = app.gameOverSound;
+    snd.currentTime = 0;
+    snd.volume = 0.6;
+    void snd.play().catch(() => {});
   }
   if (state.phase === 'countdown') {
     const whole = Math.ceil(state.countdownRemaining);
@@ -326,9 +338,9 @@ const updateAudioForPhase = (app: App): void => {
 
 const handleGameIntent = (app: App, intent: Intent): void => {
   const state = app.state;
-  if (state.phase === 'won' || state.phase === 'lost') {
+  if (state.phase === 'won') {
     if (intent.kind === 'confirm') {
-      app.state = state.phase === 'won' ? nextLevel(state) : newGame(state.difficulty);
+      app.state = nextLevel(state);
       app.lastPhase = app.state.phase;
       app.lastCountdownWhole = Math.ceil(app.state.countdownRemaining);
     } else if (intent.kind === 'pause') {
@@ -471,6 +483,25 @@ const handlePauseIntent = (app: App, intent: Intent): void => {
   }
 };
 
+const handleGameOverIntent = (app: App, intent: Intent): void => {
+  if (!allSettled(app.gameOver)) return;
+  if (intent.kind === 'confirm') {
+    app.gameOverSound.pause();
+    app.gameOverSound.currentTime = 0;
+    app.state = newGame(app.state.difficulty);
+    app.lastPhase = app.state.phase;
+    app.lastCountdownWhole = Math.ceil(app.state.countdownRemaining);
+    app.screen = 'game';
+    app.music.playGame();
+  } else if (intent.kind === 'pause') {
+    app.gameOverSound.pause();
+    app.gameOverSound.currentTime = 0;
+    app.screen = 'menu';
+    app.music.stop();
+    app.music.playMenu();
+  }
+};
+
 export const handleIntent = (app: App, intent: Intent): void => {
   app.audio.unlock();
   if (!app.audioUnlocked) {
@@ -495,6 +526,9 @@ export const handleIntent = (app: App, intent: Intent): void => {
     case 'pause':
       handlePauseIntent(app, intent);
       break;
+    case 'gameover':
+      handleGameOverIntent(app, intent);
+      break;
   }
 };
 
@@ -508,6 +542,9 @@ export const update = (app: App, dt: number): void => {
   if (app.screen === 'game') {
     app.state = tick(app.state, dt);
     updateAudioForPhase(app);
+  }
+  if (app.screen === 'gameover') {
+    app.gameOver = updateGameOver(app.gameOver, dt);
   }
 };
 
@@ -524,6 +561,9 @@ export const draw = (app: App): void => {
       break;
     case 'pause':
       drawPause(app);
+      break;
+    case 'gameover':
+      drawGameOver(app.view, app.gameOver);
       break;
   }
 };

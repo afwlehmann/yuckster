@@ -62,7 +62,7 @@ describe('flow', () => {
       steps += 1;
     } while (outcome === 'flowing' && steps < 20);
     expect(outcome).toBe('won');
-    expect(getCell(state.board, { x: 7, y: 0 }).fill).toBe(0); // end not filled, just reached
+    expect(getCell(state.board, { x: 7, y: 0 }).fill).toBe(1); // end cell fills on win
   });
 
   it('loses when the yuck hits a dead end', () => {
