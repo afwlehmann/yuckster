@@ -13,7 +13,7 @@ export const SPRITE_SIZE = 24; // matches TILE
 
 type SpriteKey = string;
 
-interface SpriteStore {
+export interface SpriteStore {
   readonly gravel: readonly HTMLCanvasElement[];
   readonly pipes: ReadonlyMap<SpriteKey, HTMLCanvasElement>;
   readonly yuck: ReadonlyMap<SpriteKey, HTMLCanvasElement>;

@@ -1,0 +1,198 @@
+// Game state for a single play session: the board, the held piece queue, the
+// flow simulation, score, phase, and the countdown timer. Transitions produce
+// new state records (immutable) so the render layer stays pure. The one bit of
+// mutable, side-effecting state lives in main.ts (the RAF loop and audio).
+
+import type { Board, Difficulty, Piece, Phase, Position } from './types.js';
+import { createLevel, getCell, place, clampToBoard, GRID_SIZE } from './board.js';
+import { completeHeadCell, startFlow, type FlowState, type StepResult } from './flow.js';
+import { createRng, type RngState } from './rng.js';
+import { drawPiece, rotateCw, rotateCcw } from './pieces.js';
+
+export interface GameState {
+  readonly difficulty: Difficulty;
+  readonly level: number;
+  readonly board: Board;
+  readonly cursor: Position;
+  readonly currentPiece: Piece;
+  readonly nextPiece: Piece;
+  readonly rng: RngState;
+  readonly phase: Phase;
+  readonly countdownRemaining: number; // seconds
+  readonly flow: FlowState | null;
+  readonly score: number;
+  readonly flowCellAccumulator: number; // fractional cell progress
+}
+
+const flowSpeed = (difficulty: Difficulty, level: number): number =>
+  difficulty.flowCellsPerSecond * (1 + difficulty.speedRampPerLevel * (level - 1));
+
+const drawNext = (rng: RngState): { readonly piece: Piece; readonly rng: RngState } => {
+  const step = drawPiece(rng);
+  return { piece: step.value, rng: step.rng };
+};
+
+export const newGame = (difficulty: Difficulty): GameState => {
+  const seed = (Math.random() * 0xffffffff) >>> 0;
+  let rng = createRng(seed);
+  const board = createLevel(difficulty, 1, rng);
+  const first = drawNext(rng);
+  rng = first.rng;
+  const second = drawNext(rng);
+  rng = second.rng;
+  return {
+    difficulty,
+    level: 1,
+    board,
+    cursor: { x: 0, y: 0 },
+    currentPiece: first.piece,
+    nextPiece: second.piece,
+    rng,
+    phase: 'countdown',
+    countdownRemaining: difficulty.countdownSeconds,
+    flow: null,
+    score: 0,
+    flowCellAccumulator: 0,
+  };
+};
+
+export const nextLevel = (state: GameState): GameState => {
+  const level = state.level + 1;
+  let rng = state.rng;
+  const board = createLevel(state.difficulty, level, rng);
+  const first = drawNext(rng);
+  rng = first.rng;
+  const second = drawNext(rng);
+  rng = second.rng;
+  return {
+    ...state,
+    level,
+    board,
+    cursor: { x: 0, y: 0 },
+    currentPiece: first.piece,
+    nextPiece: second.piece,
+    rng,
+    phase: 'countdown',
+    countdownRemaining: state.difficulty.countdownSeconds,
+    flow: null,
+    flowCellAccumulator: 0,
+  };
+};
+
+export const moveCursor = (state: GameState, dx: number, dy: number): GameState => ({
+  ...state,
+  cursor: clampToBoard({ x: state.cursor.x + dx, y: state.cursor.y + dy }, GRID_SIZE),
+});
+
+export const rotateHeldCw = (state: GameState): GameState => ({
+  ...state,
+  currentPiece: rotateCw(state.currentPiece),
+});
+
+export const rotateHeldCcw = (state: GameState): GameState => ({
+  ...state,
+  currentPiece: rotateCcw(state.currentPiece),
+});
+
+export type PlaceResult =
+  | { readonly status: 'placed'; readonly state: GameState }
+  | { readonly status: 'blocked'; readonly state: GameState };
+
+/** Attempt to place the held piece at the cursor. Returns a PlaceResult. */
+export const placeHeld = (state: GameState): PlaceResult => {
+  if (state.phase === 'won' || state.phase === 'lost') {
+    return { status: 'blocked', state };
+  }
+  const next = place(state.board, state.cursor, state.currentPiece);
+  if (next === null) {
+    return { status: 'blocked', state };
+  }
+  const drawn = drawNext(state.rng);
+  return {
+    status: 'placed',
+    state: {
+      ...state,
+      board: next,
+      currentPiece: state.nextPiece,
+      nextPiece: drawn.piece,
+      rng: drawn.rng,
+    },
+  };
+};
+
+/**
+ * Advance the simulation by `dt` seconds. Handles the countdown→flow transition,
+ * the gradual fill of the current head cell, and win/loss detection.
+ */
+export const tick = (state: GameState, dt: number): GameState => {
+  if (state.phase === 'won' || state.phase === 'lost') {
+    return state;
+  }
+  if (state.phase === 'countdown') {
+    const remaining = state.countdownRemaining - dt;
+    if (remaining > 0) {
+      return { ...state, countdownRemaining: remaining };
+    }
+    // Start flowing.
+    const flow = startFlow(state.board);
+    return { ...state, phase: 'flowing', countdownRemaining: 0, flow, flowCellAccumulator: 0 };
+  }
+  // flowing
+  if (state.flow === null) {
+    return state;
+  }
+  const speed = flowSpeed(state.difficulty, state.level);
+  const acc = state.flowCellAccumulator + speed * dt;
+  // Each whole unit of acc completes one cell.
+  const cellsToAdvance = Math.floor(acc);
+  if (cellsToAdvance <= 0) {
+    return { ...state, flowCellAccumulator: acc };
+  }
+  let flow: FlowState = state.flow;
+  let outcome: StepResult['outcome'] = 'flowing';
+  let extraScore = 0;
+  for (let i = 0; i < cellsToAdvance; i += 1) {
+    const result = completeHeadCell(flow);
+    flow = result.state;
+    outcome = result.outcome;
+    if (outcome !== 'flowing') {
+      break;
+    }
+  }
+  extraScore = flow.score - (state.flow?.score ?? 0);
+  const carriedAcc = acc - cellsToAdvance;
+  if (outcome === 'won') {
+    const levelBonus = state.level * 100;
+    return {
+      ...state,
+      flow,
+      flowCellAccumulator: carriedAcc,
+      score: state.score + extraScore + levelBonus,
+      phase: 'won',
+      board: flow.board,
+    };
+  }
+  if (outcome === 'lost') {
+    return {
+      ...state,
+      flow,
+      flowCellAccumulator: carriedAcc,
+      score: state.score + extraScore,
+      phase: 'lost',
+      board: flow.board,
+    };
+  }
+  return {
+    ...state,
+    flow,
+    flowCellAccumulator: carriedAcc,
+    score: state.score + extraScore,
+    board: flow.board,
+  };
+};
+
+/** True if the cursor currently sits on a placeable cell. */
+export const cursorPlaceable = (state: GameState): boolean => {
+  const cell = getCell(state.board, state.cursor);
+  return cell.kind === 'empty' && cell.piece === null && !cell.fixed;
+};
