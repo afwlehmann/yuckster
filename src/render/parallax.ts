@@ -268,15 +268,4 @@ export const drawParallax = (view: CanvasView, p: Parallax): void => {
     }
   }
   blitLayer(view, p.layers[3]);
-  // Shimmering puddles
-  for (let i = 0; i < 6; i += 1) {
-    const on = Math.floor(p.elapsed * 4 + i) % 3 < 2;
-    const px = (i * 80 + 20) % LAYER_W;
-    if (on) {
-      ctx.fillStyle = PALETTE.yuckDark;
-      ctx.fillRect(px, VIEW_H - 16, 16, 4);
-      ctx.fillStyle = PALETTE.yuck;
-      ctx.fillRect(px + 2, VIEW_H - 16, 12, 2);
-    }
-  }
 };
