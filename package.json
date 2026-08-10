@@ -1,0 +1,50 @@
+{
+  "name": "yuckster",
+  "version": "0.1.0",
+  "description": "An 80s-style pipe-puzzle browser game. Guide the yuck from source to drain before it spills.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.0",
+    "@commitlint/config-conventional": "^19.8.0",
+    "@eslint/js": "^9.28.0",
+    "@types/node": "^22.15.21",
+    "eslint": "^9.28.0",
+    "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-vitest": "^0.5.4",
+    "globals": "^15.14.0",
+    "lint-staged": "^15.2.10",
+    "prettier": "^3.5.3",
+    "simple-git-hooks": "^2.11.1",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.34.0",
+    "vite": "^6.3.5",
+    "vitest": "^3.1.4"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npx lint-staged",
+    "commit-msg": "npx commitlint --edit $1"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.{json,md,mts,mjs,html}": [
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
