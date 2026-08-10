@@ -89,8 +89,8 @@ const drawCursor = (
   const on = Math.floor(cursor.blink * 4) % 2 === 0;
   if (on) {
     ctx.strokeStyle = canPlaceHere ? PALETTE.cursor : PALETTE.hudDanger;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(px + 0.5, py + 0.5, TILE - 1, TILE - 1);
+    ctx.lineWidth = 2;
+    ctx.strokeRect(px + 1, py + 1, TILE - 2, TILE - 2);
   }
 };
 

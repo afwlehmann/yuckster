@@ -128,32 +128,33 @@ const drawMenu = (app: App): void => {
   clear(view, PALETTE.void);
   drawParallax(view, parallax);
   const { ctx } = view;
-  // Title with drip effect
+  // Title with drip effect (scale 6)
   const title = 'YUCKSTER';
-  drawTextCenter(ctx, title, VIEW_W / 2, 30, PALETTE.yuckDark, 3);
-  drawTextCenter(ctx, title, VIEW_W / 2, 28, PALETTE.yuck, 3);
-  drawTextCenter(ctx, title, VIEW_W / 2, 27, PALETTE.yuckLight, 3);
+  drawTextCenter(ctx, title, VIEW_W / 2, 70, PALETTE.yuckDark, 6);
+  drawTextCenter(ctx, title, VIEW_W / 2, 66, PALETTE.yuck, 6);
+  drawTextCenter(ctx, title, VIEW_W / 2, 64, PALETTE.yuckLight, 6);
   // Drips under title
   ctx.fillStyle = PALETTE.yuck;
+  const titleSpacing = 6 * (5 + 1);
   for (let i = 0; i < title.length; i += 1) {
     if (i % 2 === 0) {
-      const x = VIEW_W / 2 - textWidth(title, 3) / 2 + i * 18 + 4;
-      ctx.fillRect(x, 52, 2, 6);
+      const x = VIEW_W / 2 - textWidth(title, 6) / 2 + i * titleSpacing + 6;
+      ctx.fillRect(x, 120, 3, 14);
     }
   }
-  // Menu items
+  // Menu items (scale 2)
   MENU_ITEMS.forEach((item, i) => {
-    const y = 80 + i * 14;
+    const y = 180 + i * 32;
     const selected = i === app.menuIndex;
     const color = selected ? PALETTE.hudAccent : PALETTE.hudTextDim;
     if (selected) {
       ctx.fillStyle = PALETTE.hudAccent;
-      ctx.fillRect(VIEW_W / 2 - textWidth(item) / 2 - 8, y, 2, 8);
+      ctx.fillRect(VIEW_W / 2 - textWidth(item, 2) / 2 - 12, y, 3, 16);
     }
-    drawTextCenter(ctx, item, VIEW_W / 2, y, color, 1);
+    drawTextCenter(ctx, item, VIEW_W / 2, y, color, 2);
     if (item === 'DIFFICULTY' && i === 1) {
       const name = DIFFICULTIES[app.difficultyIndex].name;
-      drawTextCenter(ctx, `< ${name} >`, VIEW_W / 2, y + 10, PALETTE.hudText, 1);
+      drawTextCenter(ctx, `< ${name} >`, VIEW_W / 2, y + 22, PALETTE.hudText, 2);
     }
   });
   // Footer hint
@@ -161,9 +162,9 @@ const drawMenu = (app: App): void => {
     ctx,
     'UP/DOWN SELECT  ENTER CONFIRM',
     VIEW_W / 2,
-    VIEW_H - 12,
+    VIEW_H - 24,
     PALETTE.hudTextDim,
-    1,
+    2,
   );
 };
 
@@ -183,13 +184,13 @@ const drawKeybindings = (app: App): void => {
   const ctx = view.ctx;
   clear(view, PALETTE.void);
   drawParallax(view, parallax);
-  ctx.fillStyle = 'rgba(8,12,10,0.4)';
+  ctx.fillStyle = 'rgba(8,12,10,0.55)';
   ctx.fillRect(0, 0, VIEW_W, VIEW_H);
-  drawTextCenter(ctx, 'KEYBINDINGS', VIEW_W / 2, 30, PALETTE.hudAccent, 2);
+  drawTextCenter(ctx, 'KEYBINDINGS', VIEW_W / 2, 70, PALETTE.hudAccent, 4);
   KEYBINDING_LINES.forEach((line, i) => {
-    drawText(ctx, line, 48, 60 + i * 12, PALETTE.hudText, 1);
+    drawText(ctx, line, VIEW_W / 2 - 180, 140 + i * 28, PALETTE.hudText, 2);
   });
-  drawTextCenter(ctx, 'ESC/ENTER BACK', VIEW_W / 2, VIEW_H - 14, PALETTE.hudTextDim, 1);
+  drawTextCenter(ctx, 'ESC/ENTER BACK', VIEW_W / 2, VIEW_H - 30, PALETTE.hudTextDim, 2);
 };
 
 const drawGameScreen = (app: App): void => {
@@ -201,24 +202,24 @@ const drawGameScreen = (app: App): void => {
   drawHud(view, store, hudFor(state));
   drawBoard(view, store, state.board, cursorFor(state, app.blink));
   if (state.phase === 'won') {
-    drawTextCenter(view.ctx, 'LEVEL CLEAR', VIEW_W / 2, VIEW_H / 2 - 8, PALETTE.hudAccent, 2);
+    drawTextCenter(view.ctx, 'LEVEL CLEAR', VIEW_W / 2, VIEW_H / 2 - 20, PALETTE.hudAccent, 4);
     drawTextCenter(
       view.ctx,
       'ENTER NEXT  /  ESC MENU',
       VIEW_W / 2,
-      VIEW_H / 2 + 8,
+      VIEW_H / 2 + 20,
       PALETTE.hudText,
-      1,
+      2,
     );
   } else if (state.phase === 'lost') {
-    drawTextCenter(view.ctx, 'SPILL!', VIEW_W / 2, VIEW_H / 2 - 8, PALETTE.hudDanger, 2);
+    drawTextCenter(view.ctx, 'SPILL!', VIEW_W / 2, VIEW_H / 2 - 20, PALETTE.hudDanger, 4);
     drawTextCenter(
       view.ctx,
       'ENTER RETRY  /  ESC MENU',
       VIEW_W / 2,
-      VIEW_H / 2 + 8,
+      VIEW_H / 2 + 20,
       PALETTE.hudText,
-      1,
+      2,
     );
   }
   view.ctx.restore();
@@ -236,18 +237,18 @@ const drawPause = (app: App): void => {
   } else {
     clear(view, PALETTE.void);
   }
-  drawTextCenter(ctx, 'PAUSED', VIEW_W / 2, VIEW_H / 2 - 24, PALETTE.hudAccent, 2);
+  drawTextCenter(ctx, 'PAUSED', VIEW_W / 2, VIEW_H / 2 - 50, PALETTE.hudAccent, 4);
   PAUSE_ITEMS.forEach((item, i) => {
-    const y = VIEW_H / 2 + i * 14;
+    const y = VIEW_H / 2 + i * 32;
     const selected = i === app.pauseIndex;
     const color = selected ? PALETTE.hudAccent : PALETTE.hudTextDim;
     if (selected) {
       ctx.fillStyle = PALETTE.hudAccent;
-      ctx.fillRect(VIEW_W / 2 - textWidth(item) / 2 - 8, y, 2, 8);
+      ctx.fillRect(VIEW_W / 2 - textWidth(item, 2) / 2 - 12, y, 3, 16);
     }
-    drawTextCenter(ctx, item, VIEW_W / 2, y, color, 1);
+    drawTextCenter(ctx, item, VIEW_W / 2, y, color, 2);
   });
-  drawTextCenter(ctx, 'ESC RESUME  /  ENTER QUIT', VIEW_W / 2, VIEW_H - 14, PALETTE.hudTextDim, 1);
+  drawTextCenter(ctx, 'ESC RESUME  /  ENTER QUIT', VIEW_W / 2, VIEW_H - 30, PALETTE.hudTextDim, 2);
 };
 
 const captureFrame = (app: App): HTMLCanvasElement => {

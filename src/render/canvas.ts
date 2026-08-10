@@ -1,15 +1,16 @@
 // Canvas setup: owns the 2D context, the logical resolution, and the
 // integer-scaled presentation to the CSS viewport. `image-rendering: pixelated`
-// (set in index.html) keeps the upscale crisp.
+// (set in index.html) keeps the upscale crisp. VGA 640x480 gives the pixel art
+// room for detail (thicker pipes with rivets/highlights, shaded yuck).
 
-export const VIEW_W = 256;
-export const VIEW_H = 224;
-export const HUD_H = 24;
+export const VIEW_W = 640;
+export const VIEW_H = 480;
+export const HUD_H = 48;
 export const GRID_SIZE = 8;
-export const TILE = 24;
+export const TILE = 56;
 export const GRID_PX = GRID_SIZE * TILE;
 export const GRID_X = (VIEW_W - GRID_PX) / 2;
-export const GRID_Y = HUD_H + 4;
+export const GRID_Y = HUD_H + 8;
 
 export interface CanvasView {
   readonly canvas: HTMLCanvasElement;
