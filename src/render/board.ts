@@ -65,9 +65,37 @@ const drawCell = (
   if (cell.piece !== null) {
     blit(view, pipeSpriteFor(store, cell.piece), px, py);
     if (cell.fill > 0) {
-      view.ctx.globalAlpha = Math.min(1, cell.fill);
+      // Clip the yuck sprite so it appears to flow from entry to exit edge.
+      // fill=0 → nothing visible, fill=1 → full sprite.
+      const fill = Math.min(1, cell.fill);
+      const dir = cell.entryDir;
+      view.ctx.save();
+      view.ctx.beginPath();
+      if (dir !== null && cell.piece.kind !== 'cross') {
+        // For straight/elbow: clip from entry edge growing toward exit.
+        switch (dir) {
+          case 'N':
+            // Enters from top, flows down — reveal from top.
+            view.ctx.rect(px, py, TILE, TILE * fill);
+            break;
+          case 'S':
+            view.ctx.rect(px, py + TILE * (1 - fill), TILE, TILE * fill);
+            break;
+          case 'E':
+            view.ctx.rect(px + TILE * (1 - fill), py, TILE * fill, TILE);
+            break;
+          case 'W':
+            view.ctx.rect(px, py, TILE * fill, TILE);
+            break;
+        }
+      } else {
+        // For cross or unknown: just reveal from center outward (square).
+        const half = (1 - fill) / 2;
+        view.ctx.rect(px + TILE * half, py + TILE * half, TILE * fill, TILE * fill);
+      }
+      view.ctx.clip();
       blit(view, yuckSpriteFor(store, cell.piece), px, py);
-      view.ctx.globalAlpha = 1;
+      view.ctx.restore();
     }
   }
 };

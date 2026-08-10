@@ -27,8 +27,8 @@ const key = (parts: readonly unknown[]): string => parts.join(':');
 // outer rim to RIM_HALF (14px).
 const PIPE_HALF = SPRITE_SIZE / 2;
 const RIM_HALF = 14;
-const BODY_HALF = 12;
-const CHANNEL_HALF = 6;
+const BODY_HALF = 11;
+const CHANNEL_HALF = 8;
 
 // --- Gravel / mud ground tiles -------------------------------------------------
 
@@ -89,6 +89,9 @@ const fillTubeH = (
   ctx.fillRect(x, top + 4, w, h - 8);
   ctx.fillStyle = PALETTE.pipeDark;
   ctx.fillRect(x, top + h - 4, w, 4);
+  // White stripe highlight down the center
+  ctx.fillStyle = PALETTE.pipeRim;
+  ctx.fillRect(x, y - 1, w, 2);
 };
 
 const fillTubeV = (
@@ -106,18 +109,21 @@ const fillTubeV = (
   ctx.fillRect(left + 4, y, w - 8, h);
   ctx.fillStyle = PALETTE.pipeDark;
   ctx.fillRect(left + w - 4, y, 4, h);
+  // White stripe highlight down the center
+  ctx.fillStyle = PALETTE.pipeRim;
+  ctx.fillRect(x - 1, y, 2, h);
 };
 
-/** Draw a flange ring at the pipe end (the tile edge). */
+/** Draw a copper flange ring at the pipe end (the tile edge). */
 const drawFlangeH = (ctx: CanvasRenderingContext2D, x: number, y: number): void => {
-  ctx.fillStyle = PALETTE.pipeRim;
+  ctx.fillStyle = PALETTE.copper;
   ctx.fillRect(x - 3, y - RIM_HALF, 6, RIM_HALF * 2);
-  ctx.fillStyle = PALETTE.pipeLight;
+  ctx.fillStyle = PALETTE.copperLight;
   ctx.fillRect(x - 3, y - RIM_HALF, 6, 2);
-  ctx.fillStyle = PALETTE.pipeShadow;
+  ctx.fillStyle = PALETTE.copperDark;
   ctx.fillRect(x - 3, y + RIM_HALF - 2, 6, 2);
   // Bolts
-  ctx.fillStyle = PALETTE.pipeShadow;
+  ctx.fillStyle = PALETTE.copperDark;
   ctx.fillRect(x - 2, y - RIM_HALF + 2, 1, 1);
   ctx.fillRect(x + 1, y - RIM_HALF + 2, 1, 1);
   ctx.fillRect(x - 2, y + RIM_HALF - 3, 1, 1);
@@ -125,14 +131,14 @@ const drawFlangeH = (ctx: CanvasRenderingContext2D, x: number, y: number): void 
 };
 
 const drawFlangeV = (ctx: CanvasRenderingContext2D, x: number, y: number): void => {
-  ctx.fillStyle = PALETTE.pipeRim;
+  ctx.fillStyle = PALETTE.copper;
   ctx.fillRect(x - RIM_HALF, y - 3, RIM_HALF * 2, 6);
-  ctx.fillStyle = PALETTE.pipeLight;
+  ctx.fillStyle = PALETTE.copperLight;
   ctx.fillRect(x - RIM_HALF, y - 3, 2, 6);
-  ctx.fillStyle = PALETTE.pipeShadow;
+  ctx.fillStyle = PALETTE.copperDark;
   ctx.fillRect(x + RIM_HALF - 2, y - 3, 2, 6);
   // Bolts
-  ctx.fillStyle = PALETTE.pipeShadow;
+  ctx.fillStyle = PALETTE.copperDark;
   ctx.fillRect(x - RIM_HALF + 2, y - 2, 1, 1);
   ctx.fillRect(x - RIM_HALF + 2, y + 1, 1, 1);
   ctx.fillRect(x + RIM_HALF - 3, y - 2, 1, 1);
@@ -179,7 +185,8 @@ const drawArm = (ctx: CanvasRenderingContext2D, dir: Direction): void => {
 /** Draw the center hub as a square flange plate with bolts. */
 const drawHub = (ctx: CanvasRenderingContext2D): void => {
   // Flange plate
-  ctx.fillStyle = PALETTE.pipeRim;
+  // Copper flange plate
+  ctx.fillStyle = PALETTE.copper;
   ctx.fillRect(PIPE_HALF - RIM_HALF, PIPE_HALF - RIM_HALF, RIM_HALF * 2, RIM_HALF * 2);
   ctx.fillStyle = PALETTE.pipe;
   ctx.fillRect(PIPE_HALF - BODY_HALF, PIPE_HALF - BODY_HALF, BODY_HALF * 2, BODY_HALF * 2);
@@ -191,6 +198,9 @@ const drawHub = (ctx: CanvasRenderingContext2D): void => {
   ctx.fillStyle = PALETTE.pipeDark;
   ctx.fillRect(PIPE_HALF - BODY_HALF, PIPE_HALF + BODY_HALF - 2, BODY_HALF * 2, 2);
   ctx.fillRect(PIPE_HALF + BODY_HALF - 2, PIPE_HALF - BODY_HALF, 2, BODY_HALF * 2);
+  // White stripe highlight across center
+  ctx.fillStyle = PALETTE.pipeRim;
+  ctx.fillRect(PIPE_HALF - BODY_HALF, PIPE_HALF - 1, BODY_HALF * 2, 2);
   // Inner channel
   ctx.fillStyle = PALETTE.pipeShadow;
   ctx.fillRect(
@@ -199,15 +209,15 @@ const drawHub = (ctx: CanvasRenderingContext2D): void => {
     CHANNEL_HALF * 2,
     CHANNEL_HALF * 2,
   );
-  // Bolts at corners
-  ctx.fillStyle = PALETTE.pipeShadow;
+  // Copper bolts at corners
+  ctx.fillStyle = PALETTE.copperDark;
   const b = 3;
   const off = BODY_HALF - b - 1;
   ctx.fillRect(PIPE_HALF - off, PIPE_HALF - off, b, b);
   ctx.fillRect(PIPE_HALF + off - b + 1, PIPE_HALF - off, b, b);
   ctx.fillRect(PIPE_HALF - off, PIPE_HALF + off - b + 1, b, b);
   ctx.fillRect(PIPE_HALF + off - b + 1, PIPE_HALF + off - b + 1, b, b);
-  ctx.fillStyle = PALETTE.pipeRim;
+  ctx.fillStyle = PALETTE.copperLight;
   ctx.fillRect(PIPE_HALF - off, PIPE_HALF - off, 1, 1);
   ctx.fillRect(PIPE_HALF + off - b + 1, PIPE_HALF - off, 1, 1);
   ctx.fillRect(PIPE_HALF - off, PIPE_HALF + off - b + 1, 1, 1);
@@ -279,14 +289,19 @@ const drawElbowCurve = (ctx: CanvasRenderingContext2D, from: Direction, to: Dire
   };
   const [cx, cy] = cornerFor[dirPair(from, to)];
   const r = PIPE_HALF;
-  // Arc angles: start at the first opening's edge, sweep to the second.
-  // We draw the arc from the first direction's edge to the second's.
-  // All arcs sweep 90° (quarter circle).
+  // Arc angles computed per corner so the arc connects the two edge midpoints.
+  // In canvas coords, angle 0 is right, PI/2 is down, PI is left, -PI/2 is up.
+  // NE (center 56,0, r 28): N midpoint (28,0) = 180°, E midpoint (56,28) = 90°
+  // ES (center 56,56, r 28): E midpoint (56,28) = -90°, S midpoint (28,56) = 180°
+  // SW (center 0,56, r 28): S midpoint (28,56) = 0°, W midpoint (0,28) = -90°
+  // WN (center 0,0, r 28): W midpoint (0,28) = 90°, N midpoint (28,0) = 0°
+  // The boolean `true` passed to arc() means draw counterclockwise (decreasing
+  // screen-angle), which connects the two midpoints with a quarter-circle.
   const anglesFor: Record<string, readonly [number, number]> = {
-    NE: [Math.PI, Math.PI / 2], // 180° → 90° (clockwise)
-    ES: [Math.PI / 2, 0], // 90° → 0° (clockwise)
-    SW: [0, -Math.PI / 2], // 0° → -90° (clockwise)
-    WN: [-Math.PI / 2, -Math.PI], // -90° → -180° (clockwise)
+    NE: [Math.PI, Math.PI / 2],
+    ES: [-Math.PI / 2, Math.PI],
+    SW: [0, -Math.PI / 2],
+    WN: [Math.PI / 2, 0],
   };
   const [startAngle, endAngle] = anglesFor[dirPair(from, to)];
   // Also draw flanges at both ends
@@ -486,9 +501,9 @@ const drawYuckElbowCurve = (
   };
   const anglesFor: Record<string, readonly [number, number]> = {
     NE: [Math.PI, Math.PI / 2],
-    ES: [Math.PI / 2, 0],
+    ES: [-Math.PI / 2, Math.PI],
     SW: [0, -Math.PI / 2],
-    WN: [-Math.PI / 2, -Math.PI],
+    WN: [Math.PI / 2, 0],
   };
   const [cx, cy] = cornerFor[dirPair(from, to)];
   const [startAngle, endAngle] = anglesFor[dirPair(from, to)];

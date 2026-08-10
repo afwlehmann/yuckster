@@ -98,9 +98,23 @@ const advance = (state: FlowState): StepResult => {
     if (nextCell.sourceDir !== nextEntry) {
       return { state, outcome: 'lost' };
     }
+    // Fill the end cell so the drain visibly fills with goo.
+    const endIndex = nextPos.y * state.board.size + nextPos.x;
+    const endBoard = {
+      ...state.board,
+      cells: state.board.cells.map((c, i) =>
+        i === endIndex ? { ...c, fill: 1, entryDir: nextEntry } : c,
+      ),
+    };
     const filled = [...state.filledCells, nextPos];
     return {
-      state: { ...state, head: nextPos, entryDir: nextEntry, filledCells: filled },
+      state: {
+        ...state,
+        head: nextPos,
+        entryDir: nextEntry,
+        filledCells: filled,
+        board: endBoard,
+      },
       outcome: 'won',
     };
   }

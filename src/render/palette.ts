@@ -9,12 +9,15 @@ export const PALETTE = {
   mudLight: '#3a2a1a',
   gravel: '#2a2218',
   gravelLight: '#3d3326',
-  // Pipes (dirty metal)
-  pipeShadow: '#0e0c08',
-  pipeDark: '#2a2418',
-  pipe: '#4a4030',
-  pipeLight: '#6a5d44',
-  pipeRim: '#8a7a58',
+  // Pipes (steel body + copper accents)
+  pipeShadow: '#1a1a22',
+  pipeDark: '#3a3a4a',
+  pipe: '#6a6a7a',
+  pipeLight: '#9a9aaa',
+  pipeRim: '#b8a080',
+  copper: '#b87333',
+  copperLight: '#d8a050',
+  copperDark: '#7a4a2a',
   rust: '#7a4a2a',
   rustDark: '#4a2a18',
   // Yuck (green goo)
