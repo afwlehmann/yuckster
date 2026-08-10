@@ -165,12 +165,22 @@ const drawMenu = (app: App): void => {
     drawTextCenter(ctx, title, VIEW_W / 2, 66, PALETTE.yuck, 6);
     drawTextCenter(ctx, title, VIEW_W / 2, 64, PALETTE.yuckLight, 6);
   }
-  // Menu items (scale 1), clustered below the logo
-  const menuStart = 280;
-  const menuEnd = 348;
-  const slotH = (menuEnd - menuStart) / MENU_ITEMS.length;
+  // Menu items (scale 1), clustered below the logo with even visual gaps
+  const labelH = 8;
+  const diffSubH = 12;
+  const gap = 16;
+  const totalH = MENU_ITEMS.length * labelH + diffSubH + (MENU_ITEMS.length - 1) * gap;
+  const menuStart = Math.round((VIEW_H - totalH) / 2 + 40);
+  const menuSlots = [menuStart];
+  {
+    let y = menuStart;
+    MENU_ITEMS.forEach((item, i) => {
+      y += labelH + (item === 'DIFFICULTY' ? diffSubH : 0) + gap;
+      if (i + 1 < MENU_ITEMS.length) menuSlots.push(y);
+    });
+  }
   MENU_ITEMS.forEach((item, i) => {
-    const y = Math.round(menuStart + i * slotH);
+    const y = menuSlots[i];
     const selected = i === app.menuIndex;
     const color = selected ? PALETTE.hudAccent : PALETTE.hudTextDim;
     drawTextCenter(ctx, item, VIEW_W / 2, y, color, 1);
