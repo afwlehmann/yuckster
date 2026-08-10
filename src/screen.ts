@@ -84,7 +84,7 @@ export const createApp = (view: CanvasView, audio: Audio, music: Music): App => 
     DIFFICULTIES.findIndex((d) => d.name === diffName),
   );
   const titleImage = new Image();
-  titleImage.src = '/title.png';
+  titleImage.src = `${import.meta.env.BASE_URL}title.png`;
   const app: App = {
     view,
     store,

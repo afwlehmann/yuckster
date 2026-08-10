@@ -18,8 +18,9 @@ export interface Music {
   readonly unlock: () => void;
 }
 
-const MENU_SRC = '/slime-pipe-relay-main-menu.mp3';
-const GAME_SRC = '/slime-pipe-relay-in-game.mp3';
+const BASE = import.meta.env.BASE_URL;
+const MENU_SRC = `${BASE}slime-pipe-relay-main-menu.mp3`;
+const GAME_SRC = `${BASE}slime-pipe-relay-in-game.mp3`;
 const FADE_MS = 800;
 const TARGET_VOL = 0.5;
 

@@ -1,0 +1,55 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "*": "ask",
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "lsp": "allow",
+    "edit": "allow",
+    "write": "allow",
+    "task": "allow",
+    "skill": "allow",
+    "question": "allow",
+    "webfetch": "allow",
+    "websearch": "ask",
+    "external_directory": "deny",
+    "doom_loop": "ask",
+    "bash": {
+      "*": "ask",
+      "nix develop -c *": "allow",
+      "nix flake check *": "allow",
+      "nix flake check": "allow",
+      "nix build *": "allow",
+      "nix fmt *": "allow",
+      "nixfmt *": "allow",
+      "git status *": "allow",
+      "git diff *": "allow",
+      "git log *": "allow",
+      "git show *": "allow",
+      "git ls-files *": "allow",
+      "git rev-parse *": "allow",
+      "git rev-list *": "allow",
+      "git ls-remote *": "allow",
+      "file *": "allow",
+      "readlink *": "allow",
+      "which *": "allow",
+      "wc *": "allow",
+      "npm *": "deny",
+      "npx *": "deny",
+      "npm": "deny",
+      "npx": "deny",
+      "rm *": "deny",
+      "rm -rf *": "deny",
+      "sudo *": "deny",
+      "git commit *": "ask",
+      "git push *": "ask",
+      "git add *": "ask"
+    }
+  },
+  "lsp": {
+    "typescript": {
+      "enabled": true
+    }
+  }
+}

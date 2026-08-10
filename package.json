@@ -44,6 +44,7 @@
       "prettier --write"
     ]
   },
+  "license": "MIT",
   "engines": {
     "node": ">=20"
   }
