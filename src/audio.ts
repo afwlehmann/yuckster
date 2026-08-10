@@ -47,7 +47,7 @@ const createAudio = (): Audio => {
     }
     ctx = new Ctor();
     master = ctx.createGain();
-    master.gain.value = 0.25;
+    master.gain.value = 0.4;
     master.connect(ctx.destination);
     return ctx;
   };
