@@ -226,6 +226,147 @@ const drawPipeBand = (ctx: CanvasRenderingContext2D, from: Direction, to: Direct
   drawHub(ctx);
 };
 
+/**
+ * Draw a rounded elbow as a quarter-circle arc. The arc center is at the
+ * corner of the cell opposite the two openings. The pipe is built in 3
+ * concentric layers: outer rim, body (with cylindrical shading), inner channel.
+ */
+const drawElbowCurve = (ctx: CanvasRenderingContext2D, from: Direction, to: Direction): void => {
+  // The arc center is at the corner that connects the two arms.
+  // For N+E: center at top-right corner (0,0), arc from right edge to bottom.
+  // For E+S: center at bottom-right (56,0), arc from top to left.
+  // For S+W: center at bottom-left (56,56), arc from left to top.
+  // For W+N: center at top-left (0,56), arc from bottom to right.
+  // Actually: the center is the corner where the two openings meet.
+  // N+E: arms go to N (top) and E (right) → center is top-right area,
+  //   but the arc should curve from the N edge to the E edge. The center
+  //   of the arc is at the corner opposite to the two directions, i.e.
+  //   the corner that the pipe bends around.
+  // N+E: bend around bottom-left corner? No — the pipe enters from top
+  //   center and exits right center. The arc center is at the corner
+  //   where the two edges meet: top-right (0, 0)? No, top-right is (56, 0).
+  //   N is top, E is right → the corner is (56, 0) top-right.
+  //   But the pipe bends around the OPPOSITE corner (bottom-left = 0, 56).
+  //   Wait — think of it as: N arm goes from center up to top edge,
+  //   E arm goes from center right to right edge. The curve connects
+  //   them, bending around the corner that's in the direction of
+  //   the opening, i.e. the inner corner is the one nearest both openings.
+  //   N+E → inner corner is top-right (56, 0). The arc center is there,
+  //   radius = SPRITE_SIZE/2, sweeping from the N edge midpoint (28, 0)
+  //   to the E edge midpoint (56, 28).
+  //   Actually no — the arc center should be at the corner that the pipe
+  //   curves AROUND. For N+E, the pipe goes up then turns right. The
+  //   center of curvature is at the corner between the two openings:
+  //   that's the top-right corner (56, 0). The radius is 28 (half the tile).
+  //   The arc goes from angle 180° (left of center = the N edge midpoint)
+  //   to 90° (below center = the E edge midpoint).
+  //   Hmm, let me think in standard coords (y down):
+  //   Center at (56, 0). Radius 28. Point at angle 180° = (56-28, 0) = (28, 0) = N edge midpoint. ✓
+  //   Point at angle 90° = (56, 0+28) = (56, 28) = E edge midpoint. ✓
+  //   Arc from 180° to 90° (clockwise = decreasing angle in screen coords).
+  const cornerFor: Record<string, readonly [number, number]> = {
+    NE: [SPRITE_SIZE, 0],
+    ES: [SPRITE_SIZE, SPRITE_SIZE],
+    SW: [0, SPRITE_SIZE],
+    WN: [0, 0],
+  };
+  const dirPair = (from: Direction, to: Direction): string => {
+    const set = new Set([from, to]);
+    if (set.has('N') && set.has('E')) return 'NE';
+    if (set.has('E') && set.has('S')) return 'ES';
+    if (set.has('S') && set.has('W')) return 'SW';
+    return 'WN';
+  };
+  const [cx, cy] = cornerFor[dirPair(from, to)];
+  const r = PIPE_HALF;
+  // Arc angles: start at the first opening's edge, sweep to the second.
+  // We draw the arc from the first direction's edge to the second's.
+  // All arcs sweep 90° (quarter circle).
+  const anglesFor: Record<string, readonly [number, number]> = {
+    NE: [Math.PI, Math.PI / 2], // 180° → 90° (clockwise)
+    ES: [Math.PI / 2, 0], // 90° → 0° (clockwise)
+    SW: [0, -Math.PI / 2], // 0° → -90° (clockwise)
+    WN: [-Math.PI / 2, -Math.PI], // -90° → -180° (clockwise)
+  };
+  const [startAngle, endAngle] = anglesFor[dirPair(from, to)];
+  // Also draw flanges at both ends
+  const flangePosFor: Record<
+    string,
+    readonly [readonly [number, number], readonly [number, number]]
+  > = {
+    NE: [
+      [PIPE_HALF, 2],
+      [SPRITE_SIZE - 2, PIPE_HALF],
+    ],
+    ES: [
+      [SPRITE_SIZE - 2, PIPE_HALF],
+      [PIPE_HALF, SPRITE_SIZE - 2],
+    ],
+    SW: [
+      [PIPE_HALF, SPRITE_SIZE - 2],
+      [2, PIPE_HALF],
+    ],
+    WN: [
+      [2, PIPE_HALF],
+      [PIPE_HALF, 2],
+    ],
+  };
+  const pair = dirPair(from, to);
+  const isHorizontalFlangeFirst = from === 'E' || from === 'W';
+  const isHorizontalFlangeSecond = to === 'E' || to === 'W';
+  const [f1, f2] = flangePosFor[pair];
+
+  // Draw 3 concentric arc layers (outer rim → body → channel) using strokes
+  ctx.lineCap = 'butt';
+
+  // Outer rim (light)
+  ctx.strokeStyle = PALETTE.pipeRim;
+  ctx.lineWidth = RIM_HALF * 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, startAngle, endAngle, true);
+  ctx.stroke();
+
+  // Body (mid)
+  ctx.strokeStyle = PALETTE.pipe;
+  ctx.lineWidth = BODY_HALF * 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, startAngle, endAngle, true);
+  ctx.stroke();
+
+  // Highlight (light inner band on the outer side of the curve)
+  ctx.strokeStyle = PALETTE.pipeLight;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r + BODY_HALF - 2, startAngle, endAngle, true);
+  ctx.stroke();
+
+  // Shadow (dark band on the inner side of the curve)
+  ctx.strokeStyle = PALETTE.pipeDark;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - BODY_HALF + 2, startAngle, endAngle, true);
+  ctx.stroke();
+
+  // Inner channel (dark)
+  ctx.strokeStyle = PALETTE.pipeShadow;
+  ctx.lineWidth = CHANNEL_HALF * 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, startAngle, endAngle, true);
+  ctx.stroke();
+
+  // Flanges at both ends
+  if (isHorizontalFlangeFirst) {
+    drawFlangeH(ctx, f1[0], f1[1]);
+  } else {
+    drawFlangeV(ctx, f1[0], f1[1]);
+  }
+  if (isHorizontalFlangeSecond) {
+    drawFlangeH(ctx, f2[0], f2[1]);
+  } else {
+    drawFlangeV(ctx, f2[0], f2[1]);
+  }
+};
+
 const drawStraight = (rotation: number): HTMLCanvasElement => {
   const { canvas, ctx } = makeSprite(SPRITE_SIZE, SPRITE_SIZE);
   const [from, to]: Direction[] = rotation % 2 === 0 ? ['E', 'W'] : ['N', 'S'];
@@ -242,7 +383,7 @@ const drawElbow = (rotation: number): HTMLCanvasElement => {
     ['W', 'N'],
   ];
   const [from, to] = pairs[rotation % 4];
-  drawPipeBand(ctx, from, to);
+  drawElbowCurve(ctx, from, to);
   return canvas;
 };
 
@@ -296,40 +437,6 @@ const drawYuckBandV = (ctx: CanvasRenderingContext2D): void => {
   ctx.fillRect(PIPE_HALF - 1, 0, 1, SPRITE_SIZE);
 };
 
-const drawYuckArm = (ctx: CanvasRenderingContext2D, dir: Direction): void => {
-  ctx.fillStyle = PALETTE.yuckDark;
-  switch (dir) {
-    case 'N':
-      ctx.fillRect(PIPE_HALF - CHANNEL_HALF, 0, CHANNEL_HALF * 2, PIPE_HALF);
-      ctx.fillStyle = PALETTE.yuck;
-      ctx.fillRect(PIPE_HALF - CHANNEL_HALF + 1, 0, CHANNEL_HALF * 2 - 2, PIPE_HALF);
-      ctx.fillStyle = PALETTE.yuckLight;
-      ctx.fillRect(PIPE_HALF - 1, 0, 1, PIPE_HALF);
-      break;
-    case 'S':
-      ctx.fillRect(PIPE_HALF - CHANNEL_HALF, PIPE_HALF, CHANNEL_HALF * 2, PIPE_HALF);
-      ctx.fillStyle = PALETTE.yuck;
-      ctx.fillRect(PIPE_HALF - CHANNEL_HALF + 1, PIPE_HALF, CHANNEL_HALF * 2 - 2, PIPE_HALF);
-      ctx.fillStyle = PALETTE.yuckLight;
-      ctx.fillRect(PIPE_HALF - 1, PIPE_HALF, 1, PIPE_HALF);
-      break;
-    case 'E':
-      ctx.fillRect(PIPE_HALF, PIPE_HALF - CHANNEL_HALF, PIPE_HALF, CHANNEL_HALF * 2);
-      ctx.fillStyle = PALETTE.yuck;
-      ctx.fillRect(PIPE_HALF, PIPE_HALF - CHANNEL_HALF + 1, PIPE_HALF, CHANNEL_HALF * 2 - 2);
-      ctx.fillStyle = PALETTE.yuckLight;
-      ctx.fillRect(PIPE_HALF, PIPE_HALF - 1, PIPE_HALF, 1);
-      break;
-    case 'W':
-      ctx.fillRect(0, PIPE_HALF - CHANNEL_HALF, PIPE_HALF, CHANNEL_HALF * 2);
-      ctx.fillStyle = PALETTE.yuck;
-      ctx.fillRect(0, PIPE_HALF - CHANNEL_HALF + 1, PIPE_HALF, CHANNEL_HALF * 2 - 2);
-      ctx.fillStyle = PALETTE.yuckLight;
-      ctx.fillRect(0, PIPE_HALF - 1, PIPE_HALF, 1);
-      break;
-  }
-};
-
 const drawYuckHub = (ctx: CanvasRenderingContext2D): void => {
   ctx.fillStyle = PALETTE.yuckDark;
   ctx.fillRect(
@@ -359,6 +466,64 @@ const drawYuckStraight = (rotation: number): HTMLCanvasElement => {
   return canvas;
 };
 
+const drawYuckElbowCurve = (
+  ctx: CanvasRenderingContext2D,
+  from: Direction,
+  to: Direction,
+): void => {
+  const dirPair = (from: Direction, to: Direction): string => {
+    const set = new Set([from, to]);
+    if (set.has('N') && set.has('E')) return 'NE';
+    if (set.has('E') && set.has('S')) return 'ES';
+    if (set.has('S') && set.has('W')) return 'SW';
+    return 'WN';
+  };
+  const cornerFor: Record<string, readonly [number, number]> = {
+    NE: [SPRITE_SIZE, 0],
+    ES: [SPRITE_SIZE, SPRITE_SIZE],
+    SW: [0, SPRITE_SIZE],
+    WN: [0, 0],
+  };
+  const anglesFor: Record<string, readonly [number, number]> = {
+    NE: [Math.PI, Math.PI / 2],
+    ES: [Math.PI / 2, 0],
+    SW: [0, -Math.PI / 2],
+    WN: [-Math.PI / 2, -Math.PI],
+  };
+  const [cx, cy] = cornerFor[dirPair(from, to)];
+  const [startAngle, endAngle] = anglesFor[dirPair(from, to)];
+  const r = PIPE_HALF;
+  ctx.lineCap = 'butt';
+
+  // Yuck dark edges
+  ctx.strokeStyle = PALETTE.yuckDark;
+  ctx.lineWidth = CHANNEL_HALF * 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, startAngle, endAngle, true);
+  ctx.stroke();
+
+  // Yuck mid
+  ctx.strokeStyle = PALETTE.yuck;
+  ctx.lineWidth = CHANNEL_HALF * 2 - 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, startAngle, endAngle, true);
+  ctx.stroke();
+
+  // Yuck light
+  ctx.strokeStyle = PALETTE.yuckLight;
+  ctx.lineWidth = CHANNEL_HALF * 2 - 4;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, startAngle, endAngle, true);
+  ctx.stroke();
+
+  // Glossy highlight
+  ctx.strokeStyle = PALETTE.yuckGlow;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, startAngle, endAngle, true);
+  ctx.stroke();
+};
+
 const drawYuckElbow = (rotation: number): HTMLCanvasElement => {
   const { canvas, ctx } = makeSprite(SPRITE_SIZE, SPRITE_SIZE);
   const pairs: readonly [Direction, Direction][] = [
@@ -368,9 +533,7 @@ const drawYuckElbow = (rotation: number): HTMLCanvasElement => {
     ['W', 'N'],
   ];
   const [from, to] = pairs[rotation % 4];
-  drawYuckArm(ctx, from);
-  drawYuckArm(ctx, to);
-  drawYuckHub(ctx);
+  drawYuckElbowCurve(ctx, from, to);
   return canvas;
 };
 

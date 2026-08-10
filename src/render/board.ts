@@ -107,7 +107,9 @@ export const drawBoard = (
     }
   }
   if (cursor !== null) {
-    drawCursor(view, store, cursor, true);
+    const cell = getCell(board, cursor.pos);
+    const placeable = cell.kind === 'empty' && cell.piece === null && !cell.fixed;
+    drawCursor(view, store, cursor, placeable);
   }
 };
 

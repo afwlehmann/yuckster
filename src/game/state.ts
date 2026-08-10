@@ -114,11 +114,13 @@ export const placeHeld = (state: GameState): PlaceResult => {
     return { status: 'blocked', state };
   }
   const drawn = drawNext(state.rng);
+  const flow = state.flow === null ? null : { ...state.flow, board: next };
   return {
     status: 'placed',
     state: {
       ...state,
       board: next,
+      flow,
       currentPiece: state.nextPiece,
       nextPiece: drawn.piece,
       rng: drawn.rng,
