@@ -478,6 +478,10 @@ export const handleIntent = (app: App, intent: Intent): void => {
     app.music.unlock();
     app.music.playMenu();
   }
+  if (intent.kind === 'musicToggle') {
+    app.music.toggle();
+    return;
+  }
   switch (app.screen) {
     case 'menu':
       handleMenuIntent(app, intent);

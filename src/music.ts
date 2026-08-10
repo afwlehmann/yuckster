@@ -16,6 +16,10 @@ export interface Music {
   readonly resume: () => void;
   /** Unlock audio on first user gesture; starts the menu track if queued. */
   readonly unlock: () => void;
+  /** Toggle music on/off. Returns true if now enabled. */
+  readonly toggle: () => boolean;
+  /** True if music is currently muted. */
+  readonly isMuted: () => boolean;
 }
 
 const BASE = import.meta.env.BASE_URL;
@@ -38,6 +42,8 @@ const buildMusic = (): Music => {
   let current: Track | null = null;
   let pending: Track | null = 'menu';
   let suspended = false;
+  let muted = false;
+  let mutedTrack: Track | null = null;
 
   const fadeTo = (el: HTMLAudioElement, target: number): void => {
     const start = el.volume;
@@ -73,6 +79,10 @@ const buildMusic = (): Music => {
   };
 
   const playMenu = (): void => {
+    if (muted) {
+      mutedTrack = 'menu';
+      return;
+    }
     if (!unlocked) {
       pending = 'menu';
       return;
@@ -82,6 +92,10 @@ const buildMusic = (): Music => {
   };
 
   const playGame = (): void => {
+    if (muted) {
+      mutedTrack = 'game';
+      return;
+    }
     if (!unlocked) {
       pending = 'game';
       return;
@@ -129,7 +143,26 @@ const buildMusic = (): Music => {
     }
   };
 
-  return { playMenu, playGame, stop, suspend, resume, unlock };
+  const toggle = (): boolean => {
+    muted = !muted;
+    if (muted) {
+      mutedTrack = current;
+      menuEl.pause();
+      gameEl.pause();
+      current = null;
+    } else if (mutedTrack !== null) {
+      const track = mutedTrack;
+      mutedTrack = null;
+      if (unlocked) {
+        startTrack(track);
+      }
+    }
+    return !muted;
+  };
+
+  const isMuted = (): boolean => muted;
+
+  return { playMenu, playGame, stop, suspend, resume, unlock, toggle, isMuted };
 };
 
 export const createMusic = (): Music => buildMusic();

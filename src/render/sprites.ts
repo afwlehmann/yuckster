@@ -593,26 +593,50 @@ const drawOpening = (ctx: CanvasRenderingContext2D, dir: Direction, color: strin
 
 const drawStart = (dir: Direction): HTMLCanvasElement => {
   const { canvas, ctx } = makeSprite(SPRITE_SIZE, SPRITE_SIZE);
-  // Nozzle housing
-  ctx.fillStyle = PALETTE.pipeDark;
-  ctx.fillRect(PIPE_HALF - 20, PIPE_HALF - 20, 40, 40);
-  ctx.fillStyle = PALETTE.pipeRim;
+  // Steel body with copper flange plate — matches pipe visual language.
+  ctx.fillStyle = PALETTE.copper;
+  ctx.fillRect(PIPE_HALF - 22, PIPE_HALF - 22, 44, 44);
+  ctx.fillStyle = PALETTE.pipe;
   ctx.fillRect(PIPE_HALF - 18, PIPE_HALF - 18, 36, 36);
-  ctx.fillStyle = PALETTE.nozzle;
-  ctx.fillRect(PIPE_HALF - 16, PIPE_HALF - 16, 32, 32);
-  ctx.fillStyle = PALETTE.nozzleLight;
-  ctx.fillRect(PIPE_HALF - 16, PIPE_HALF - 16, 32, 2);
-  ctx.fillRect(PIPE_HALF - 16, PIPE_HALF - 16, 2, 32);
-  // Bolts
-  ctx.fillStyle = PALETTE.pipeShadow;
-  ctx.fillRect(PIPE_HALF - 14, PIPE_HALF - 14, 3, 3);
-  ctx.fillRect(PIPE_HALF + 11, PIPE_HALF - 14, 3, 3);
-  ctx.fillRect(PIPE_HALF - 14, PIPE_HALF + 11, 3, 3);
-  ctx.fillRect(PIPE_HALF + 11, PIPE_HALF + 11, 3, 3);
-  // Opening toward sourceDir, oozing yuck
-  drawOpening(ctx, dir, PALETTE.yuckDark);
-  drawOpening(ctx, dir, PALETTE.yuck);
-  // Central yuck pool
+  ctx.fillStyle = PALETTE.pipeLight;
+  ctx.fillRect(PIPE_HALF - 18, PIPE_HALF - 18, 36, 2);
+  ctx.fillRect(PIPE_HALF - 18, PIPE_HALF - 18, 2, 36);
+  ctx.fillStyle = PALETTE.pipeDark;
+  ctx.fillRect(PIPE_HALF - 18, PIPE_HALF + 16, 36, 2);
+  ctx.fillRect(PIPE_HALF + 16, PIPE_HALF - 18, 2, 36);
+  // Copper bolts at corners
+  ctx.fillStyle = PALETTE.copperDark;
+  ctx.fillRect(PIPE_HALF - 16, PIPE_HALF - 16, 3, 3);
+  ctx.fillRect(PIPE_HALF + 13, PIPE_HALF - 16, 3, 3);
+  ctx.fillRect(PIPE_HALF - 16, PIPE_HALF + 13, 3, 3);
+  ctx.fillRect(PIPE_HALF + 13, PIPE_HALF + 13, 3, 3);
+  ctx.fillStyle = PALETTE.copperLight;
+  ctx.fillRect(PIPE_HALF - 16, PIPE_HALF - 16, 1, 1);
+  ctx.fillRect(PIPE_HALF + 13, PIPE_HALF - 16, 1, 1);
+  ctx.fillRect(PIPE_HALF - 16, PIPE_HALF + 13, 1, 1);
+  ctx.fillRect(PIPE_HALF + 13, PIPE_HALF + 13, 1, 1);
+  // Pipe stub extending toward sourceDir (matches pipe body style)
+  drawOpening(ctx, dir, PALETTE.pipeDark);
+  // White stripe on pipe stub
+  switch (dir) {
+    case 'N':
+      ctx.fillStyle = PALETTE.pipeRim;
+      ctx.fillRect(PIPE_HALF - 1, 0, 2, PIPE_HALF);
+      break;
+    case 'S':
+      ctx.fillStyle = PALETTE.pipeRim;
+      ctx.fillRect(PIPE_HALF - 1, PIPE_HALF, 2, PIPE_HALF);
+      break;
+    case 'E':
+      ctx.fillStyle = PALETTE.pipeRim;
+      ctx.fillRect(PIPE_HALF, PIPE_HALF - 1, PIPE_HALF, 2);
+      break;
+    case 'W':
+      ctx.fillStyle = PALETTE.pipeRim;
+      ctx.fillRect(0, PIPE_HALF - 1, PIPE_HALF, 2);
+      break;
+  }
+  // Yuck pool in center
   ctx.fillStyle = PALETTE.yuck;
   ctx.fillRect(PIPE_HALF - 6, PIPE_HALF - 6, 12, 12);
   ctx.fillStyle = PALETTE.yuckLight;

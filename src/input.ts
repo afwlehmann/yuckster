@@ -8,6 +8,7 @@ export type Intent =
   | { readonly kind: 'place' }
   | { readonly kind: 'pause' }
   | { readonly kind: 'confirm' }
+  | { readonly kind: 'musicToggle' }
   | { readonly kind: 'up' }
   | { readonly kind: 'down' }
   | { readonly kind: 'left' }
@@ -76,6 +77,9 @@ const translate = (key: string): Intent | null => {
     case 'P':
     case 'Escape':
       return { kind: 'pause' };
+    case 'm':
+    case 'M':
+      return { kind: 'musicToggle' };
     case 'Enter':
       return { kind: 'confirm' };
   }
