@@ -19,6 +19,7 @@ import {
   drawGameOver,
   updateGameOver,
   allSettled,
+  loadBeats,
   type GameOverState,
 } from './render/gameover.js';
 import { type Intent } from './input.js';
@@ -83,6 +84,7 @@ export interface App {
   audioUnlocked: boolean;
   gameOver: GameOverState;
   gameOverSound: HTMLAudioElement;
+  gameOverBeats: readonly number[];
 }
 
 export const createApp = (view: CanvasView, audio: Audio, music: Music): App => {
@@ -94,6 +96,7 @@ export const createApp = (view: CanvasView, audio: Audio, music: Music): App => 
   );
   const titleImage = new Image();
   titleImage.src = `${import.meta.env.BASE_URL}title.png`;
+  const gameOverBeats: number[] = [];
   const app: App = {
     view,
     store,
@@ -116,9 +119,13 @@ export const createApp = (view: CanvasView, audio: Audio, music: Music): App => 
     titleImage,
     titleImageReady: false,
     audioUnlocked: false,
-    gameOver: createGameOverState(),
+    gameOver: createGameOverState(gameOverBeats),
     gameOverSound: new Audio(`${import.meta.env.BASE_URL}game-over.mp3`),
+    gameOverBeats,
   };
+  void loadBeats().then((b) => {
+    (app.gameOverBeats as number[]).push(...b);
+  });
   titleImage.addEventListener('load', () => {
     app.titleImageReady = true;
   });
@@ -320,7 +327,7 @@ const updateAudioForPhase = (app: App): void => {
     audio.play('lose');
     app.music.stop();
     app.screen = 'gameover';
-    app.gameOver = createGameOverState();
+    app.gameOver = createGameOverState(app.gameOverBeats);
     const snd = app.gameOverSound;
     snd.currentTime = 0;
     snd.volume = 0.6;
@@ -551,7 +558,7 @@ export const update = (app: App, dt: number): void => {
     updateAudioForPhase(app);
   }
   if (app.screen === 'gameover') {
-    app.gameOver = updateGameOver(app.gameOver, dt);
+    app.gameOver = updateGameOver(app.gameOver, dt, app.gameOverSound.currentTime);
   }
 };
 
