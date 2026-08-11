@@ -13,6 +13,13 @@ import { type Music } from './music.js';
 import { createShakeState, type Shake } from './render/shake.js';
 import { createParallax, updateParallax, drawParallax, type Parallax } from './render/parallax.js';
 import { createBiplane, updateBiplane, drawBiplane, type Biplane } from './render/biplane.js';
+import {
+  createHelicopter,
+  updateHelicopter,
+  drawHelicopter,
+  helicopterPos,
+  type Helicopter,
+} from './render/helicopter.js';
 import { drawBlurredFrame } from './render/blur.js';
 import {
   createGameOverState,
@@ -79,6 +86,7 @@ export interface App {
   frozenFrame: HTMLCanvasElement | null;
   fade: number; // 0..1 menu→game crossfade
   biplane: Biplane;
+  helicopter: Helicopter;
   titleImage: HTMLImageElement | null;
   titleImageReady: boolean;
   audioUnlocked: boolean;
@@ -116,6 +124,7 @@ export const createApp = (view: CanvasView, audio: Audio, music: Music): App => 
     frozenFrame: null,
     fade: 0,
     biplane: createBiplane(),
+    helicopter: createHelicopter(),
     titleImage,
     titleImageReady: false,
     audioUnlocked: false,
@@ -166,7 +175,10 @@ const drawMenu = (app: App): void => {
   drawParallax(view, parallax);
   drawBiplane(view.ctx, app.biplane);
   const { ctx } = view;
-  // Title banner image (if loaded), scaled to fit; else fallback to text.
+  const logoCX = VIEW_W / 2;
+  const logoCY = 72;
+  const heliPos = helicopterPos(app.helicopter, logoCX, logoCY);
+  if (!heliPos.front) drawHelicopter(ctx, app.helicopter, logoCX, logoCY);
   if (app.titleImageReady && app.titleImage !== null) {
     const img = app.titleImage;
     const maxW = 440;
@@ -183,6 +195,7 @@ const drawMenu = (app: App): void => {
     drawTextCenter(ctx, title, VIEW_W / 2, 66, PALETTE.yuck, 6);
     drawTextCenter(ctx, title, VIEW_W / 2, 64, PALETTE.yuckLight, 6);
   }
+  if (heliPos.front) drawHelicopter(ctx, app.helicopter, logoCX, logoCY);
   // Menu items (scale 1), clustered below the logo with even visual gaps
   const labelH = 8;
   const diffSubH = 12;
@@ -552,6 +565,7 @@ export const update = (app: App, dt: number): void => {
   if (app.screen === 'menu' || app.screen === 'keybindings') {
     app.parallax = updateParallax(app.parallax, dt);
     app.biplane = updateBiplane(app.biplane, dt);
+    app.helicopter = updateHelicopter(app.helicopter, dt);
   }
   if (app.screen === 'game') {
     app.state = tick(app.state, dt);
