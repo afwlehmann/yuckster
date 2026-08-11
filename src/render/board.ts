@@ -13,6 +13,7 @@ import {
   startSprite,
   yuckSpriteFor,
   yuckEndSprite,
+  CHANNEL_HALF,
   type SpriteStore,
 } from './sprites.js';
 import { PALETTE } from './palette.js';
@@ -89,15 +90,25 @@ const drawCell = (
           view.ctx.beginPath();
           if (activeH) {
             if (dir === 'W') {
-              view.ctx.rect(px, py + TILE / 2 - 8, TILE * f, 16);
+              view.ctx.rect(px, py + TILE / 2 - CHANNEL_HALF, TILE * f, CHANNEL_HALF * 2);
             } else {
-              view.ctx.rect(px + TILE * (1 - f), py + TILE / 2 - 8, TILE * f, 16);
+              view.ctx.rect(
+                px + TILE * (1 - f),
+                py + TILE / 2 - CHANNEL_HALF,
+                TILE * f,
+                CHANNEL_HALF * 2,
+              );
             }
           } else {
             if (dir === 'N') {
-              view.ctx.rect(px + TILE / 2 - 8, py, 16, TILE * f);
+              view.ctx.rect(px + TILE / 2 - CHANNEL_HALF, py, CHANNEL_HALF * 2, TILE * f);
             } else {
-              view.ctx.rect(px + TILE / 2 - 8, py + TILE * (1 - f), 16, TILE * f);
+              view.ctx.rect(
+                px + TILE / 2 - CHANNEL_HALF,
+                py + TILE * (1 - f),
+                CHANNEL_HALF * 2,
+                TILE * f,
+              );
             }
           }
           view.ctx.clip();
@@ -111,9 +122,14 @@ const drawCell = (
             view.ctx.beginPath();
             const hfill = cell.fillH;
             if (dir === 'W') {
-              view.ctx.rect(px, py + TILE / 2 - 8, TILE * hfill, 16);
+              view.ctx.rect(px, py + TILE / 2 - CHANNEL_HALF, TILE * hfill, CHANNEL_HALF * 2);
             } else {
-              view.ctx.rect(px + TILE * (1 - hfill), py + TILE / 2 - 8, TILE * hfill, 16);
+              view.ctx.rect(
+                px + TILE * (1 - hfill),
+                py + TILE / 2 - CHANNEL_HALF,
+                TILE * hfill,
+                CHANNEL_HALF * 2,
+              );
             }
             view.ctx.clip();
             blit(view, store.yuckCrossH, px, py);
@@ -127,9 +143,14 @@ const drawCell = (
             view.ctx.beginPath();
             const vfill = cell.fillV;
             if (dir === 'N') {
-              view.ctx.rect(px + TILE / 2 - 8, py, 16, TILE * vfill);
+              view.ctx.rect(px + TILE / 2 - CHANNEL_HALF, py, CHANNEL_HALF * 2, TILE * vfill);
             } else {
-              view.ctx.rect(px + TILE / 2 - 8, py + TILE * (1 - vfill), 16, TILE * vfill);
+              view.ctx.rect(
+                px + TILE / 2 - CHANNEL_HALF,
+                py + TILE * (1 - vfill),
+                CHANNEL_HALF * 2,
+                TILE * vfill,
+              );
             }
             view.ctx.clip();
             blit(view, store.yuckCrossV, px, py);
@@ -143,7 +164,7 @@ const drawCell = (
         view.ctx.beginPath();
         if (piece.kind === 'elbow') {
           const HALF = TILE / 2;
-          const CH = 8;
+          const CH = CHANNEL_HALF;
           const bigR = HALF + CH;
           const pairs: readonly (readonly [
             Direction,

@@ -20,7 +20,7 @@ export interface HudState {
 }
 
 const pad = (n: number, len: number): string => n.toString().padStart(len, '0');
-const PREVIEW = 24; // piece preview sprite size (downscaled from 56)
+const PREVIEW = 20; // piece preview sprite size (downscaled from 48)
 
 export const drawHud = (view: CanvasView, store: SpriteStore, hud: HudState): void => {
   const { ctx } = view;

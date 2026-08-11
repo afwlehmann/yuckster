@@ -1,5 +1,5 @@
 // Procedural pixel-art sprite cache. Sprites are drawn once into offscreen
-// canvases at TILE resolution and blitted by the board renderer. At 56px tiles
+// canvases at TILE resolution and blitted by the board renderer. At 48px tiles
 // the pipes carry real detail: a beveled rim, a mid body, an inner shadow
 // channel, rivets at the hub, rust clusters, and a glossy yuck highlight.
 
@@ -8,7 +8,7 @@ import { GRID_SIZE, makeSprite } from './canvas.js';
 import { PALETTE } from './palette.js';
 import { createRng, nextInt, type RngState } from '../game/rng.js';
 
-export const SPRITE_SIZE = 56; // matches TILE
+export const SPRITE_SIZE = 48; // matches TILE
 
 type SpriteKey = string;
 
@@ -29,13 +29,13 @@ export interface SpriteStore {
 
 const key = (parts: readonly unknown[]): string => parts.join(':');
 
-// Pipe geometry constants (56px tile). The interior channel is CHANNEL_HALF
-// (6px) wide on each side of center; the body extends to BODY_HALF (12px); the
-// outer rim to RIM_HALF (14px).
+// Pipe geometry constants (48px tile). The interior channel is CHANNEL_HALF
+// (6px) wide on each side of center; the body extends to BODY_HALF (9px); the
+// outer rim to RIM_HALF (12px).
 const PIPE_HALF = SPRITE_SIZE / 2;
-const RIM_HALF = 14;
-const BODY_HALF = 11;
-const CHANNEL_HALF = 8;
+export const RIM_HALF = 12;
+export const BODY_HALF = 9;
+export const CHANNEL_HALF = 6;
 
 // --- Gravel / mud ground tiles -------------------------------------------------
 
@@ -249,38 +249,9 @@ const drawPipeBand = (ctx: CanvasRenderingContext2D, from: Direction, to: Direct
  * concentric layers: outer rim, body (with cylindrical shading), inner channel.
  */
 const drawElbowCurve = (ctx: CanvasRenderingContext2D, from: Direction, to: Direction): void => {
-  // The arc center is at the corner that connects the two arms.
-  // For N+E: center at top-right corner (0,0), arc from right edge to bottom.
-  // For E+S: center at bottom-right (56,0), arc from top to left.
-  // For S+W: center at bottom-left (56,56), arc from left to top.
-  // For W+N: center at top-left (0,56), arc from bottom to right.
-  // Actually: the center is the corner where the two openings meet.
-  // N+E: arms go to N (top) and E (right) → center is top-right area,
-  //   but the arc should curve from the N edge to the E edge. The center
-  //   of the arc is at the corner opposite to the two directions, i.e.
-  //   the corner that the pipe bends around.
-  // N+E: bend around bottom-left corner? No — the pipe enters from top
-  //   center and exits right center. The arc center is at the corner
-  //   where the two edges meet: top-right (0, 0)? No, top-right is (56, 0).
-  //   N is top, E is right → the corner is (56, 0) top-right.
-  //   But the pipe bends around the OPPOSITE corner (bottom-left = 0, 56).
-  //   Wait — think of it as: N arm goes from center up to top edge,
-  //   E arm goes from center right to right edge. The curve connects
-  //   them, bending around the corner that's in the direction of
-  //   the opening, i.e. the inner corner is the one nearest both openings.
-  //   N+E → inner corner is top-right (56, 0). The arc center is there,
-  //   radius = SPRITE_SIZE/2, sweeping from the N edge midpoint (28, 0)
-  //   to the E edge midpoint (56, 28).
-  //   Actually no — the arc center should be at the corner that the pipe
-  //   curves AROUND. For N+E, the pipe goes up then turns right. The
-  //   center of curvature is at the corner between the two openings:
-  //   that's the top-right corner (56, 0). The radius is 28 (half the tile).
-  //   The arc goes from angle 180° (left of center = the N edge midpoint)
-  //   to 90° (below center = the E edge midpoint).
-  //   Hmm, let me think in standard coords (y down):
-  //   Center at (56, 0). Radius 28. Point at angle 180° = (56-28, 0) = (28, 0) = N edge midpoint. ✓
-  //   Point at angle 90° = (56, 0+28) = (56, 28) = E edge midpoint. ✓
-  //   Arc from 180° to 90° (clockwise = decreasing angle in screen coords).
+  // The arc center is at the corner where the two opening edges meet.
+  // N+E → top-right corner (SPRITE_SIZE, 0), radius PIPE_HALF.
+  // The arc sweeps from one edge midpoint to the other as a quarter-circle.
   const cornerFor: Record<string, readonly [number, number]> = {
     NE: [SPRITE_SIZE, 0],
     ES: [SPRITE_SIZE, SPRITE_SIZE],
@@ -595,11 +566,11 @@ const yuckSprite = (piece: Piece): HTMLCanvasElement => {
 const drawYuckEnd = (dir: Direction): HTMLCanvasElement => {
   const { canvas, ctx } = makeSprite(SPRITE_SIZE, SPRITE_SIZE);
   ctx.fillStyle = PALETTE.yuckDark;
-  ctx.fillRect(PIPE_HALF - 14, PIPE_HALF - 14, 28, 28);
+  ctx.fillRect(PIPE_HALF - 11, PIPE_HALF - 11, 22, 22);
   ctx.fillStyle = PALETTE.yuck;
-  ctx.fillRect(PIPE_HALF - 13, PIPE_HALF - 13, 26, 26);
+  ctx.fillRect(PIPE_HALF - 10, PIPE_HALF - 10, 20, 20);
   ctx.fillStyle = PALETTE.yuckLight;
-  ctx.fillRect(PIPE_HALF - 12, PIPE_HALF - 12, 24, 24);
+  ctx.fillRect(PIPE_HALF - 9, PIPE_HALF - 9, 18, 18);
   ctx.fillStyle = PALETTE.yuckGlow;
   ctx.fillRect(PIPE_HALF - 1, PIPE_HALF - 1, 2, 2);
   switch (dir) {
@@ -624,25 +595,25 @@ const drawEndFilled = (dir: Direction): HTMLCanvasElement => {
   drawEndHousing(ctx, dir);
   // Green pool behind the grate — visible through the bars, not past the housing
   ctx.fillStyle = PALETTE.yuck;
-  ctx.fillRect(PIPE_HALF - 10, PIPE_HALF - 10, 20, 20);
-  ctx.fillStyle = PALETTE.yuckLight;
   ctx.fillRect(PIPE_HALF - 8, PIPE_HALF - 8, 16, 16);
+  ctx.fillStyle = PALETTE.yuckLight;
+  ctx.fillRect(PIPE_HALF - 6, PIPE_HALF - 6, 12, 12);
   ctx.fillStyle = PALETTE.yuckGlow;
   ctx.fillRect(PIPE_HALF - 2, PIPE_HALF - 2, 4, 4);
   // Channel stub from the edge toward the pool
   ctx.fillStyle = PALETTE.yuck;
   switch (dir) {
     case 'N':
-      ctx.fillRect(PIPE_HALF - CHANNEL_HALF, 0, CHANNEL_HALF * 2, PIPE_HALF - 10);
+      ctx.fillRect(PIPE_HALF - CHANNEL_HALF, 0, CHANNEL_HALF * 2, PIPE_HALF - 8);
       break;
     case 'S':
-      ctx.fillRect(PIPE_HALF - CHANNEL_HALF, PIPE_HALF + 10, CHANNEL_HALF * 2, PIPE_HALF - 10);
+      ctx.fillRect(PIPE_HALF - CHANNEL_HALF, PIPE_HALF + 8, CHANNEL_HALF * 2, PIPE_HALF - 8);
       break;
     case 'E':
-      ctx.fillRect(PIPE_HALF + 10, PIPE_HALF - CHANNEL_HALF, PIPE_HALF - 10, CHANNEL_HALF * 2);
+      ctx.fillRect(PIPE_HALF + 8, PIPE_HALF - CHANNEL_HALF, PIPE_HALF - 8, CHANNEL_HALF * 2);
       break;
     case 'W':
-      ctx.fillRect(0, PIPE_HALF - CHANNEL_HALF, PIPE_HALF - 10, CHANNEL_HALF * 2);
+      ctx.fillRect(0, PIPE_HALF - CHANNEL_HALF, PIPE_HALF - 8, CHANNEL_HALF * 2);
       break;
   }
   drawEndGrate(ctx);
@@ -671,26 +642,26 @@ const drawStart = (dir: Direction): HTMLCanvasElement => {
   const { canvas, ctx } = makeSprite(SPRITE_SIZE, SPRITE_SIZE);
   // Steel body with copper flange plate — matches pipe visual language.
   ctx.fillStyle = PALETTE.copper;
-  ctx.fillRect(PIPE_HALF - 22, PIPE_HALF - 22, 44, 44);
+  ctx.fillRect(PIPE_HALF - 19, PIPE_HALF - 19, 38, 38);
   ctx.fillStyle = PALETTE.pipe;
-  ctx.fillRect(PIPE_HALF - 18, PIPE_HALF - 18, 36, 36);
+  ctx.fillRect(PIPE_HALF - 16, PIPE_HALF - 16, 32, 32);
   ctx.fillStyle = PALETTE.pipeLight;
-  ctx.fillRect(PIPE_HALF - 18, PIPE_HALF - 18, 36, 2);
-  ctx.fillRect(PIPE_HALF - 18, PIPE_HALF - 18, 2, 36);
+  ctx.fillRect(PIPE_HALF - 16, PIPE_HALF - 16, 32, 2);
+  ctx.fillRect(PIPE_HALF - 16, PIPE_HALF - 16, 2, 32);
   ctx.fillStyle = PALETTE.pipeDark;
-  ctx.fillRect(PIPE_HALF - 18, PIPE_HALF + 16, 36, 2);
-  ctx.fillRect(PIPE_HALF + 16, PIPE_HALF - 18, 2, 36);
+  ctx.fillRect(PIPE_HALF - 16, PIPE_HALF + 14, 32, 2);
+  ctx.fillRect(PIPE_HALF + 14, PIPE_HALF - 16, 2, 32);
   // Copper bolts at corners
   ctx.fillStyle = PALETTE.copperDark;
-  ctx.fillRect(PIPE_HALF - 16, PIPE_HALF - 16, 3, 3);
-  ctx.fillRect(PIPE_HALF + 13, PIPE_HALF - 16, 3, 3);
-  ctx.fillRect(PIPE_HALF - 16, PIPE_HALF + 13, 3, 3);
-  ctx.fillRect(PIPE_HALF + 13, PIPE_HALF + 13, 3, 3);
+  ctx.fillRect(PIPE_HALF - 14, PIPE_HALF - 14, 3, 3);
+  ctx.fillRect(PIPE_HALF + 11, PIPE_HALF - 14, 3, 3);
+  ctx.fillRect(PIPE_HALF - 14, PIPE_HALF + 11, 3, 3);
+  ctx.fillRect(PIPE_HALF + 11, PIPE_HALF + 11, 3, 3);
   ctx.fillStyle = PALETTE.copperLight;
-  ctx.fillRect(PIPE_HALF - 16, PIPE_HALF - 16, 1, 1);
-  ctx.fillRect(PIPE_HALF + 13, PIPE_HALF - 16, 1, 1);
-  ctx.fillRect(PIPE_HALF - 16, PIPE_HALF + 13, 1, 1);
-  ctx.fillRect(PIPE_HALF + 13, PIPE_HALF + 13, 1, 1);
+  ctx.fillRect(PIPE_HALF - 14, PIPE_HALF - 14, 1, 1);
+  ctx.fillRect(PIPE_HALF + 11, PIPE_HALF - 14, 1, 1);
+  ctx.fillRect(PIPE_HALF - 14, PIPE_HALF + 11, 1, 1);
+  ctx.fillRect(PIPE_HALF + 11, PIPE_HALF + 11, 1, 1);
   // Pipe stub extending toward sourceDir (matches pipe body style)
   drawOpening(ctx, dir, PALETTE.pipeDark);
   // White stripe on pipe stub
@@ -714,9 +685,9 @@ const drawStart = (dir: Direction): HTMLCanvasElement => {
   }
   // Yuck pool in center
   ctx.fillStyle = PALETTE.yuck;
-  ctx.fillRect(PIPE_HALF - 6, PIPE_HALF - 6, 12, 12);
+  ctx.fillRect(PIPE_HALF - 5, PIPE_HALF - 5, 10, 10);
   ctx.fillStyle = PALETTE.yuckLight;
-  ctx.fillRect(PIPE_HALF - 4, PIPE_HALF - 4, 8, 8);
+  ctx.fillRect(PIPE_HALF - 3, PIPE_HALF - 3, 6, 6);
   ctx.fillStyle = PALETTE.yuckGlow;
   ctx.fillRect(PIPE_HALF - 2, PIPE_HALF - 2, 4, 4);
   return canvas;
@@ -724,18 +695,18 @@ const drawStart = (dir: Direction): HTMLCanvasElement => {
 
 const drawEndHousing = (ctx: CanvasRenderingContext2D, dir: Direction): void => {
   ctx.fillStyle = PALETTE.drainDark;
-  ctx.fillRect(PIPE_HALF - 20, PIPE_HALF - 20, 40, 40);
+  ctx.fillRect(PIPE_HALF - 17, PIPE_HALF - 17, 34, 34);
   ctx.fillStyle = PALETTE.pipeRim;
-  ctx.fillRect(PIPE_HALF - 18, PIPE_HALF - 18, 36, 36);
+  ctx.fillRect(PIPE_HALF - 15, PIPE_HALF - 15, 30, 30);
   drawOpening(ctx, dir, PALETTE.drain);
 };
 
 const drawEndGrate = (ctx: CanvasRenderingContext2D): void => {
   ctx.fillStyle = PALETTE.drainDark;
-  for (let i = -12; i <= 12; i += 4) {
-    ctx.fillRect(PIPE_HALF + i - 1, PIPE_HALF - 12, 2, 24);
+  for (let i = -10; i <= 10; i += 4) {
+    ctx.fillRect(PIPE_HALF + i - 1, PIPE_HALF - 10, 2, 20);
   }
-  ctx.fillRect(PIPE_HALF - 12, PIPE_HALF - 1, 24, 2);
+  ctx.fillRect(PIPE_HALF - 10, PIPE_HALF - 1, 20, 2);
 };
 
 const drawEnd = (dir: Direction): HTMLCanvasElement => {
