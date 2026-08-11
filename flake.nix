@@ -50,6 +50,7 @@
               pkgs.nixfmt
               pkgs.typescript-language-server
               pkgs.nil
+              pkgs.gh
             ];
           };
         }
