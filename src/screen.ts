@@ -21,6 +21,7 @@ import {
   type Helicopter,
 } from './render/helicopter.js';
 import { drawBlurredFrame } from './render/blur.js';
+import { createRat, updateRat, drawRat, ratCell, killRat, type Rat } from './render/rat.js';
 import {
   createGameOverState,
   drawGameOver,
@@ -93,6 +94,8 @@ export interface App {
   gameOver: GameOverState;
   gameOverSound: HTMLAudioElement;
   gameOverBeats: readonly number[];
+  rat: Rat | null;
+  boingSound: HTMLAudioElement;
 }
 
 export const createApp = (view: CanvasView, audio: Audio, music: Music): App => {
@@ -131,6 +134,8 @@ export const createApp = (view: CanvasView, audio: Audio, music: Music): App => 
     gameOver: createGameOverState(gameOverBeats),
     gameOverSound: new Audio(`${import.meta.env.BASE_URL}game-over.mp3`),
     gameOverBeats,
+    rat: null,
+    boingSound: new Audio(`${import.meta.env.BASE_URL}boing.mp3`),
   };
   void loadBeats().then((b) => {
     (app.gameOverBeats as number[]).push(...b);
@@ -151,6 +156,7 @@ const startGame = (app: App): void => {
   app.screen = 'game';
   app.audio.play('menuSelect');
   app.music.playGame();
+  app.rat = createRat(app.state.board);
 };
 
 const cursorFor = (state: GameState, blink: number): Cursor => ({
@@ -278,6 +284,9 @@ const drawGameScreen = (app: App): void => {
   view.ctx.translate(sx, sy);
   drawHud(view, store, hudFor(state));
   drawBoard(view, store, state.board, cursorFor(state, app.blink));
+  if (app.rat !== null) {
+    drawRat(view.ctx, app.rat);
+  }
   if (state.phase === 'won') {
     drawTextCenter(view.ctx, 'LEVEL CLEAR', VIEW_W / 2, VIEW_H / 2 - 20, PALETTE.hudAccent, 4);
     drawTextCenter(
@@ -363,11 +372,13 @@ const handleGameIntent = (app: App, intent: Intent): void => {
       app.state = nextLevel(state);
       app.lastPhase = app.state.phase;
       app.lastCountdownWhole = Math.ceil(app.state.countdownRemaining);
+      app.rat = createRat(app.state.board);
     } else if (intent.kind === 'pause') {
       app.screen = 'menu';
       app.audio.stopFlowLoop();
       app.music.stop();
       app.music.playMenu();
+      app.rat = null;
     }
     return;
   }
@@ -384,6 +395,16 @@ const handleGameIntent = (app: App, intent: Intent): void => {
       if (result.status === 'placed') {
         app.audio.play('place');
         app.shake = app.shake.trigger();
+        if (app.rat !== null && app.rat.alive) {
+          const rc = ratCell(app.rat);
+          if (rc.x === state.cursor.x && rc.y === state.cursor.y) {
+            app.rat = killRat(app.rat);
+            app.boingSound.currentTime = 0;
+            void app.boingSound.play().catch(() => {});
+            app.state = { ...result.state, score: result.state.score + 75 };
+            break;
+          }
+        }
       } else {
         app.audio.play('blocked');
       }
@@ -497,6 +518,7 @@ const handlePauseIntent = (app: App, intent: Intent): void => {
       app.audio.play('menuSelect');
       app.music.stop();
       app.music.playMenu();
+      app.rat = null;
       break;
     default:
       break;
@@ -570,6 +592,9 @@ export const update = (app: App, dt: number): void => {
   if (app.screen === 'game') {
     app.state = tick(app.state, dt);
     updateAudioForPhase(app);
+    if (app.rat !== null && app.rat.alive) {
+      app.rat = updateRat(app.rat, dt, app.state.board);
+    }
   }
   if (app.screen === 'gameover') {
     app.gameOver = updateGameOver(app.gameOver, dt, app.gameOverSound.currentTime);
