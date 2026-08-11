@@ -7,3 +7,4 @@ result
 .cursor
 *.log
 .DS_Store
+.pre-commit-config.yaml
