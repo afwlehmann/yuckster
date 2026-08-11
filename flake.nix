@@ -48,6 +48,8 @@
               pkgs.nodejs_22
               pkgs.git
               pkgs.nixfmt
+              pkgs.typescript-language-server
+              pkgs.nil
             ];
           };
         }

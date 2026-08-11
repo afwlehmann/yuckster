@@ -5,7 +5,6 @@
     "read": "allow",
     "glob": "allow",
     "grep": "allow",
-    "lsp": "allow",
     "edit": "allow",
     "write": "allow",
     "task": "allow",
@@ -49,7 +48,11 @@
   },
   "lsp": {
     "typescript": {
-      "enabled": true
+      "command": ["typescript-language-server", "--stdio"]
+    },
+    "nix": {
+      "command": ["nil"],
+      "extensions": [".nix"]
     }
   }
 }
