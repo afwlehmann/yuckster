@@ -29,7 +29,7 @@ Then open the URL Vite prints (default http://localhost:5173).
 ### Controls
 
 | Action         | Keys                   |
-| -------------- | ---------------------- |
+| :------------- | :--------------------- |
 | Move cursor    | `↑ ↓ ← →` or `H J K L` |
 | Rotate CW      | `E`                    |
 | Rotate CCW     | `W`                    |
@@ -43,7 +43,7 @@ Then open the URL Vite prints (default http://localhost:5173).
 Four Doom-ish presets selectable from the main menu (persisted in `localStorage`):
 
 | Name            | Countdown | Flow    | Fixed pieces from |
-| --------------- | --------- | ------- | ----------------- |
+| :-------------- | :-------- | :------ | :---------------- |
 | SLUDGE PUPPY    | 15s       | slow    | level 4           |
 | GOO TROOPER     | 10s       | medium  | level 2           |
 | ULTRA-OILER     | 7s        | fast    | level 1           |
