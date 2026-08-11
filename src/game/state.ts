@@ -4,7 +4,7 @@
 // mutable, side-effecting state lives in main.ts (the RAF loop and audio).
 
 import type { Board, Difficulty, Piece, Phase, Position } from './types.js';
-import { createLevel, getCell, place, clampToBoard, GRID_SIZE } from './board.js';
+import { createLevel, getCell, place, clampToBoard, neighbor, GRID_SIZE } from './board.js';
 import {
   completeHeadCell,
   setHeadFill,
@@ -42,6 +42,11 @@ export const newGame = (difficulty: Difficulty): GameState => {
   const seed = (Math.random() * 0xffffffff) >>> 0;
   let rng = createRng(seed);
   const board = createLevel(difficulty, 1, rng);
+  const startCell = getCell(board, board.start);
+  const startNeighbor =
+    startCell.sourceDir !== null
+      ? (neighbor(board.start, startCell.sourceDir, board.size) ?? { x: 0, y: 0 })
+      : { x: 0, y: 0 };
   const first = drawNext(rng);
   rng = first.rng;
   const second = drawNext(rng);
@@ -50,7 +55,7 @@ export const newGame = (difficulty: Difficulty): GameState => {
     difficulty,
     level: 1,
     board,
-    cursor: { x: 0, y: 0 },
+    cursor: startNeighbor,
     currentPiece: first.piece,
     nextPiece: second.piece,
     rng,
@@ -66,6 +71,11 @@ export const nextLevel = (state: GameState): GameState => {
   const level = state.level + 1;
   let rng = state.rng;
   const board = createLevel(state.difficulty, level, rng);
+  const startCell = getCell(board, board.start);
+  const startNeighbor =
+    startCell.sourceDir !== null
+      ? (neighbor(board.start, startCell.sourceDir, board.size) ?? { x: 0, y: 0 })
+      : { x: 0, y: 0 };
   const first = drawNext(rng);
   rng = first.rng;
   const second = drawNext(rng);
@@ -74,7 +84,7 @@ export const nextLevel = (state: GameState): GameState => {
     ...state,
     level,
     board,
-    cursor: { x: 0, y: 0 },
+    cursor: startNeighbor,
     currentPiece: first.piece,
     nextPiece: second.piece,
     rng,
