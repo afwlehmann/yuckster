@@ -60,13 +60,3 @@ nix develop -c npm run format      # prettier --write
 nix develop -c npm test            # vitest run
 nix develop -c npm run build       # vite build
 ```
-
-## Architecture
-
-- **`src/game/`** — pure, tested domain logic: types, seeded RNG, piece geometry, board generation, flow simulation, game state machine. No DOM, no mutation — every transition returns a new state record.
-- **`src/render/`** — Canvas 2D rendering: procedural pixel-art sprite cache (pipes, yuck, gravel), 5x7 bitmap font, HUD, board compositor, parallax menu background, police helicopter, rat, pause blur, screen shake.
-- **`src/screen.ts`** — app-level screen machine (menu ↔ game ↔ pause ↔ gameover) and input dispatch.
-- **`src/audio.ts`** — WebAudio chiptune synth (no audio files; suspended on pause).
-- **`src/music.ts`** — HTMLAudioElement streaming music.
-- **`src/input.ts`** — keyboard → intent translation.
-- **`src/main.ts`** — bootstraps canvas/audio and runs the RAF loop.
